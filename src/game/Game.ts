@@ -1,5 +1,5 @@
 import { GameLogic } from '@/game/GameLogic'
-import { GameRenderer } from '@/renderer/GameRenderer'
+import { GameRendererRefactored as GameRenderer } from '@/renderer/GameRendererRefactored'
 import { GameUI } from '@/ui/GameUI'
 import { DOMHandler } from '@/ui/DOMHandler'
 import { EventManager } from '@/ui/EventManager'
