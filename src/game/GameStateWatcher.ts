@@ -2,22 +2,26 @@ import { GameState } from '@/types'
 import type { GameLogic } from './GameLogic'
 import type { SoundManager, SoundType } from '@/audio/SoundManager'
 import type { StatsManager } from '@/stats/StatsManager'
+import type { GameRendererRefactored } from '@/renderer/GameRendererRefactored'
 
 export class GameStateWatcher {
   private gameLogic: GameLogic
   private soundManager: SoundManager
   private statsManager: StatsManager
+  private renderer: GameRendererRefactored | null
   private lastGameState: GameState
   private intervalId: number | null = null
 
   constructor(
     gameLogic: GameLogic,
     soundManager: SoundManager,
-    statsManager: StatsManager
+    statsManager: StatsManager,
+    renderer?: GameRendererRefactored
   ) {
     this.gameLogic = gameLogic
     this.soundManager = soundManager
     this.statsManager = statsManager
+    this.renderer = renderer || null
     this.lastGameState = gameLogic.getGameState()
   }
 
@@ -50,6 +54,9 @@ export class GameStateWatcher {
       case GameState.SUCCESS:
         this.soundManager.playSuccessSequence()
         this.recordGameResult(true)
+        if (this.renderer) {
+          this.renderer.playVictoryEffect()
+        }
         break
 
       case GameState.FAILED:

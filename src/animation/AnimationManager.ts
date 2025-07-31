@@ -62,7 +62,7 @@ export class AnimationManager {
     const completedTweens: Tween[] = []
     
     this.tweens = this.tweens.filter(tween => {
-      if (!tween.isActive) {
+      if (!tween.isActive || !tween.target || tween.target.destroyed) {
         completedTweens.push(tween)
         return false
       }
@@ -71,10 +71,29 @@ export class AnimationManager {
       const progress = Math.min(elapsed / tween.config.duration, 1)
       const easedProgress = tween.config.easing ? tween.config.easing(progress) : progress
 
-      for (const [property, endValue] of Object.entries(tween.endValues)) {
-        const startValue = tween.startValues[property]
-        const currentValue = startValue + (endValue - startValue) * easedProgress
-        ;(tween.target as any)[property] = currentValue
+      try {
+        for (const [property, endValue] of Object.entries(tween.endValues)) {
+          const startValue = tween.startValues[property]
+          const currentValue = startValue + (endValue - startValue) * easedProgress
+          
+          if (property.includes('.')) {
+            const parts = property.split('.')
+            let obj = tween.target as any
+            for (let i = 0; i < parts.length - 1; i++) {
+              if (!obj || !obj[parts[i]]) return false
+              obj = obj[parts[i]]
+            }
+            if (obj) {
+              obj[parts[parts.length - 1]] = currentValue
+            }
+          } else {
+            (tween.target as any)[property] = currentValue
+          }
+        }
+      } catch (error) {
+        console.warn('Animation target error, removing tween:', error)
+        completedTweens.push(tween)
+        return false
       }
 
       if (tween.config.onUpdate) {
@@ -170,7 +189,9 @@ export class AnimationManager {
     })
   }
 
-  public pulse(target: PIXI.Container, intensity: number = 0.1, duration: number = 1000): void {
+  public pulse(target: PIXI.Container, intensity: number = 0.1, duration: number = 1000, loops: number = -1): void {
+    if (loops === 0) return
+    
     const originalScale = target.scale.x
     const targetScale = originalScale + intensity
 
@@ -182,7 +203,11 @@ export class AnimationManager {
           duration: duration / 2,
           easing: this.easeInOutSine,
           onComplete: () => {
-            this.pulse(target, intensity, duration)
+            if (loops > 0) {
+              this.pulse(target, intensity, duration, loops - 1)
+            } else if (loops === -1) {
+              this.pulse(target, intensity, duration, -1)
+            }
           }
         })
       }
@@ -212,6 +237,9 @@ export class AnimationManager {
     if (target) {
       this.tweens = this.tweens.filter(tween => tween.target !== target)
     } else {
+      this.tweens.forEach(tween => {
+        tween.isActive = false
+      })
       this.tweens = []
     }
   }

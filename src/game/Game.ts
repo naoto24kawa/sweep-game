@@ -51,7 +51,7 @@ export class Game {
     this.eventManager = new EventManager(this.gameUI, () => this.restart())
     this.eventManager.setupKeyboardControls()
     
-    this.gameStateWatcher = new GameStateWatcher(this.gameLogic, this.soundManager, this.statsManager)
+    this.gameStateWatcher = new GameStateWatcher(this.gameLogic, this.soundManager, this.statsManager, this.renderer)
     this.gameStateWatcher.startWatching()
     
     this.applySettings()

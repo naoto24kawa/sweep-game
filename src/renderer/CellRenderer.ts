@@ -137,18 +137,18 @@ export class CellRenderer {
     const centerX = this.cellSize / 2
     const centerY = this.cellSize / 2
     
-    // フラグの三角形
+    // フラグの三角形（サイズを縮小し、中心に配置）
     flag.poly([
-      centerX - 8, centerY - 10,  // 左上
-      centerX + 8, centerY - 2,   // 右中
-      centerX - 8, centerY + 4    // 左下
+      centerX - 3, centerY - 6,   // 左上
+      centerX + 6, centerY - 1,   // 右中
+      centerX - 3, centerY + 2    // 左下
     ])
     flag.fill(NEON_COLORS.warning.neonOrange)
 
-    // フラグのポール
-    flag.moveTo(centerX - 8, centerY - 10)
-    flag.lineTo(centerX - 8, centerY + 10)
-    flag.stroke({ width: 3, color: NEON_COLORS.text.lightGray })
+    // フラグのポール（中心に配置）
+    flag.moveTo(centerX - 3, centerY - 6)
+    flag.lineTo(centerX - 3, centerY + 8)
+    flag.stroke({ width: 2, color: NEON_COLORS.text.lightGray })
 
     flag.zIndex = 10
     

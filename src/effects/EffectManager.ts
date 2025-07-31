@@ -162,6 +162,227 @@ export class EffectManager {
     }
   }
 
+  public createVictoryEffect(): void {
+    this.createMatrixRain()
+    this.createGlitchOverlay()
+    this.createVictoryText()
+    this.createHexagonGrid()
+    // 震えるアニメーションを無効化
+    // this.screenShake(15, 800)
+  }
+
+  private createMatrixRain(): void {
+    const characters = '0123456789ABCDEF#※▓▒░'
+    const columnCount = 30
+    const stageWidth = this.container.parent ? (this.container.parent as any).width || 800 : 800
+    const stageHeight = this.container.parent ? (this.container.parent as any).height || 600 : 600
+
+    for (let i = 0; i < columnCount; i++) {
+      const column = new PIXI.Container()
+      column.x = (i / columnCount) * stageWidth
+      this.container.addChild(column)
+
+      const dropCount = Math.floor(Math.random() * 8) + 5
+      for (let j = 0; j < dropCount; j++) {
+        const char = characters[Math.floor(Math.random() * characters.length)]
+        const text = new PIXI.Text({
+          text: char,
+          style: {
+            fontFamily: 'monospace',
+            fontSize: 16,
+            fill: NEON_COLORS.accent.neonGreen,
+            fontWeight: 'bold'
+          }
+        })
+        
+        text.x = Math.random() * 20 - 10
+        text.y = -Math.random() * 500 - 100
+        text.alpha = Math.random() * 0.8 + 0.2
+        column.addChild(text)
+
+        this.animationManager.to(text, { y: stageHeight + 100 }, {
+          duration: Math.random() * 3000 + 2000,
+          easing: (t: number) => t
+        })
+
+        this.animationManager.fadeOut(text, Math.random() * 1000 + 2000, () => {
+          if (text.parent) {
+            text.parent.removeChild(text)
+          }
+          if (!text.destroyed) {
+            text.destroy()
+          }
+        })
+      }
+
+      setTimeout(() => {
+        if (column.parent) {
+          column.parent.removeChild(column)
+        }
+        if (!column.destroyed) {
+          column.destroy({ children: true })
+        }
+      }, 5000)
+    }
+  }
+
+  private createGlitchOverlay(): void {
+    const overlay = new PIXI.Graphics()
+    const stageWidth = this.container.parent ? (this.container.parent as any).width || 800 : 800
+    const stageHeight = this.container.parent ? (this.container.parent as any).height || 600 : 600
+    
+    overlay.rect(0, 0, stageWidth, stageHeight)
+    overlay.fill({ color: 0x00ffff, alpha: 0.15 })
+    this.container.addChild(overlay)
+
+    let glitchCount = 0
+    const glitchInterval = setInterval(() => {
+      overlay.alpha = Math.random() * 0.3
+      overlay.tint = Math.random() > 0.5 ? 0x00ffff : 0xff00ff
+      
+      glitchCount++
+      if (glitchCount > 20) {
+        clearInterval(glitchInterval)
+        this.animationManager.fadeOut(overlay, 500, () => {
+          if (overlay.parent) {
+            overlay.parent.removeChild(overlay)
+          }
+          if (!overlay.destroyed) {
+            overlay.destroy()
+          }
+        })
+      }
+    }, 100)
+  }
+
+  private createVictoryText(): void {
+    const messages = ['SYSTEM BREACHED', 'ACCESS GRANTED', 'MISSION COMPLETE', 'NEURAL LINK ESTABLISHED']
+    const message = messages[Math.floor(Math.random() * messages.length)]
+    
+    const stageWidth = this.container.parent ? (this.container.parent as any).width || 800 : 800
+    const stageHeight = this.container.parent ? (this.container.parent as any).height || 600 : 600
+
+    const text = new PIXI.Text({
+      text: message,
+      style: {
+        fontFamily: 'monospace',
+        fontSize: 48,
+        fill: NEON_COLORS.accent.neonCyan,
+        fontWeight: 'bold',
+        stroke: { color: 0x000000, width: 3 },
+        dropShadow: {
+          color: NEON_COLORS.accent.neonCyan,
+          blur: 10,
+          distance: 0,
+          alpha: 0.8
+        }
+      }
+    })
+
+    text.anchor.set(0.5)
+    text.x = stageWidth / 2
+    text.y = stageHeight / 2
+    text.scale.set(0)
+    text.alpha = 0
+
+    this.container.addChild(text)
+
+    this.animationManager.to(text, { 'scale.x': 1.2, 'scale.y': 1.2 }, {
+      duration: 300,
+      easing: (t: number) => 1 - Math.pow(1 - t, 3)
+    })
+
+    this.animationManager.fadeIn(text, 300, () => {
+      setTimeout(() => {
+        this.animationManager.to(text, { 'scale.x': 1, 'scale.y': 1 }, {
+          duration: 200,
+          easing: (t: number) => 1 - Math.pow(1 - t, 2)
+        })
+      }, 100)
+    })
+
+    let glitchTextCount = 0
+    const textGlitchInterval = setInterval(() => {
+      text.style.fill = Math.random() > 0.5 ? NEON_COLORS.accent.neonCyan : NEON_COLORS.warning.neonRed
+      text.x = stageWidth / 2 + (Math.random() - 0.5) * 20
+      
+      glitchTextCount++
+      if (glitchTextCount > 15) {
+        clearInterval(textGlitchInterval)
+        text.x = stageWidth / 2
+        text.style.fill = NEON_COLORS.accent.neonCyan
+        
+        setTimeout(() => {
+          this.animationManager.fadeOut(text, 1000, () => {
+            if (text.parent) {
+              text.parent.removeChild(text)
+            }
+            if (!text.destroyed) {
+              text.destroy()
+            }
+          })
+        }, 1500)
+      }
+    }, 150)
+  }
+
+  private createHexagonGrid(): void {
+    const hexSize = 30
+    const stageWidth = this.container.parent ? (this.container.parent as any).width || 800 : 800
+    const stageHeight = this.container.parent ? (this.container.parent as any).height || 600 : 600
+    
+    const cols = Math.ceil(stageWidth / (hexSize * 1.5)) + 2
+    const rows = Math.ceil(stageHeight / (hexSize * Math.sqrt(3))) + 2
+
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < cols; col++) {
+        if (Math.random() > 0.7) {
+          const hex = new PIXI.Graphics()
+          const points: number[] = []
+          
+          for (let i = 0; i < 6; i++) {
+            const angle = (i * Math.PI) / 3
+            points.push(
+              Math.cos(angle) * hexSize * 0.8,
+              Math.sin(angle) * hexSize * 0.8
+            )
+          }
+          
+          hex.poly(points)
+          hex.stroke({ width: 2, color: NEON_COLORS.accent.neonBlue, alpha: 0.4 })
+
+          hex.x = col * hexSize * 1.5 + (row % 2) * hexSize * 0.75
+          hex.y = row * hexSize * Math.sqrt(3) * 0.5
+          hex.alpha = 0
+          hex.scale.set(0)
+
+          this.container.addChild(hex)
+
+          const delay = Math.random() * 1000
+          setTimeout(() => {
+            this.animationManager.to(hex, { 'scale.x': 1, 'scale.y': 1 }, {
+              duration: 400,
+              easing: (t: number) => 1 - Math.pow(1 - t, 3)
+            })
+            
+            this.animationManager.fadeIn(hex, 400, () => {
+              setTimeout(() => {
+                this.animationManager.fadeOut(hex, 800, () => {
+                  if (hex.parent) {
+                    hex.parent.removeChild(hex)
+                  }
+                  if (!hex.destroyed) {
+                    hex.destroy()
+                  }
+                })
+              }, Math.random() * 1000 + 500)
+            })
+          }, delay)
+        }
+      }
+    }
+  }
+
   public destroy(): void {
     this.container.destroy({ children: true })
   }

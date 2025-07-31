@@ -1,6 +1,6 @@
 import * as PIXI from 'pixi.js'
 import { GameLogic } from '@/game/GameLogic'
-import { CellState, GameState, RENDER_CONSTANTS, CellClickInfo, ActionResult } from '@/types'
+import { CellState, RENDER_CONSTANTS, CellClickInfo, ActionResult } from '@/types'
 import { AnimationManager } from '@/animation/AnimationManager'
 import { EffectManager } from '@/effects/EffectManager'
 import { SoundManager, SoundType } from '@/audio/SoundManager'
@@ -12,7 +12,6 @@ import { SoundManager, SoundType } from '@/audio/SoundManager'
 export class GridEventHandler {
   private readonly cellSize = RENDER_CONSTANTS.CELL.SIZE
   private readonly cellSpacing = RENDER_CONSTANTS.CELL.SPACING
-  private hoveredCell: PIXI.Container | null = null
 
   constructor(
     private gameLogic: GameLogic,
@@ -180,7 +179,8 @@ export class GridEventHandler {
     switch (actionResult.effectType) {
       case 'explosion':
         this.effectManager.createExplosionEffect(worldPosition.x, worldPosition.y, this.cellSize)
-        this.effectManager.screenShake(RENDER_CONSTANTS.EFFECTS.SHAKE_INTENSITY, RENDER_CONSTANTS.EFFECTS.SHAKE_DURATION)
+        // 震えるアニメーションを無効化
+        // this.effectManager.screenShake(RENDER_CONSTANTS.EFFECTS.SHAKE_INTENSITY, RENDER_CONSTANTS.EFFECTS.SHAKE_DURATION)
         if (this.soundManager) this.soundManager.play(SoundType.EXPLOSION)
         break
       case 'reveal':
@@ -197,61 +197,19 @@ export class GridEventHandler {
 
   /**
    * セルホバーイベントを処理
-   * @param event PIXIポインターイベント
+   * @param _event PIXIポインターイベント
    */
-  private handleCellHover(event: PIXI.FederatedPointerEvent): void {
-    const cellContainer = this.findCellContainer(event.target as PIXI.Container)
-    if (!cellContainer?.label) return
-
-    const coordinates = this.parseCellCoordinates(cellContainer.label)
-    const cell = this.gameLogic.getCells()[coordinates.y][coordinates.x]
-    
-    if (cell.state === CellState.HIDDEN && this.gameLogic.getGameState() === GameState.ACTIVE) {
-      this.hoveredCell = cellContainer
-      this.addHoverEffect(cellContainer)
-      if (this.soundManager) this.soundManager.play(SoundType.HOVER)
-    }
+  private handleCellHover(_event: PIXI.FederatedPointerEvent): void {
+    // ホバーエフェクトを完全に無効化
+    return
   }
 
   /**
    * セルアウトイベントを処理
-   * @param event PIXIポインターイベント
+   * @param _event PIXIポインターイベント
    */
-  private handleCellOut(event: PIXI.FederatedPointerEvent): void {
-    const cellContainer = this.findCellContainer(event.target as PIXI.Container)
-    if (cellContainer === this.hoveredCell && cellContainer) {
-      this.removeHoverEffect(cellContainer)
-      this.hoveredCell = null
-    }
-  }
-
-  /**
-   * ホバーエフェクトを追加
-   * @param cellContainer セルコンテナ
-   */
-  private addHoverEffect(cellContainer: PIXI.Container): void {
-    const background = cellContainer.children[0] as PIXI.Graphics
-    
-    background.tint = 0x00ffff
-    background.alpha = 0.8
-    
-    this.animationManager.pulse(cellContainer, RENDER_CONSTANTS.EFFECTS.PULSE_INTENSITY, RENDER_CONSTANTS.EFFECTS.PULSE_DURATION)
-    
-    const cellX = cellContainer.x
-    const cellY = cellContainer.y
-    this.effectManager.createGlowEffect(cellX, cellY, 0x00ffff, this.cellSize / 2)
-  }
-
-  /**
-   * ホバーエフェクトを除去
-   * @param cellContainer セルコンテナ
-   */
-  private removeHoverEffect(cellContainer: PIXI.Container): void {
-    const background = cellContainer.children[0] as PIXI.Graphics
-    background.tint = 0xffffff
-    background.alpha = 1
-    
-    this.animationManager.stop(cellContainer)
-    cellContainer.scale.set(1)
+  private handleCellOut(_event: PIXI.FederatedPointerEvent): void {
+    // ホバーエフェクトを完全に無効化
+    return
   }
 }

@@ -68,6 +68,7 @@ export const NEON_COLORS = {
   },
   accent: {
     neonBlue: '#00ffff',
+    neonCyan: '#00ffff',
     neonGreen: '#00ff41'
   },
   warning: {

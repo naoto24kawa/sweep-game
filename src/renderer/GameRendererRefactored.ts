@@ -97,6 +97,13 @@ export class GameRendererRefactored {
   }
 
   /**
+   * ビクトリー演出を実行
+   */
+  public playVictoryEffect(): void {
+    this.pixiAppManager.getEffectManager().createVictoryEffect()
+  }
+
+  /**
    * リソースを破棄
    */
   public destroy(): void {
