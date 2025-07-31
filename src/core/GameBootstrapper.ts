@@ -41,7 +41,6 @@ export class GameBootstrapper {
     achievementButton: AchievementButton,
     achievementModal: AchievementModal
   }> {
-    console.log('GameBootstrapper: Initializing game application')
     
     try {
       // 基本サービスの作成
@@ -59,7 +58,6 @@ export class GameBootstrapper {
       // 設定の適用
       this.applyInitialSettings(services)
       
-      console.log('GameBootstrapper: Initialization complete')
       
       return {
         ...services,
@@ -139,7 +137,6 @@ export class GameBootstrapper {
 
     const achievementButton = new AchievementButton(stage, services.statsManager, {
       onAchievementClick: () => {
-        console.log('Achievement button clicked')
         achievementModal.show()
       }
     })

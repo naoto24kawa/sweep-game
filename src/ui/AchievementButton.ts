@@ -1,5 +1,7 @@
 import * as PIXI from 'pixi.js'
 import { StatsManager } from '@/stats/StatsManager'
+import { TrophyIconRenderer } from './TrophyIconRenderer'
+import { UI_CONSTANTS } from '@/constants/ui'
 
 interface AchievementButtonOptions {
   onAchievementClick: () => void
@@ -30,9 +32,9 @@ export class AchievementButton {
     this.stage.addChild(this.container)
     
     // 画面左上に配置（少し内側に）
-    this.container.x = 40
-    this.container.y = 60
-    this.container.zIndex = 1000
+    this.container.x = UI_CONSTANTS.ACHIEVEMENT.BUTTON_X
+    this.container.y = UI_CONSTANTS.ACHIEVEMENT.BUTTON_Y
+    this.container.zIndex = UI_CONSTANTS.ACHIEVEMENT.BUTTON_Z_INDEX
     this.stage.sortableChildren = true
   }
 
@@ -42,7 +44,7 @@ export class AchievementButton {
     // ボタン背景
     const buttonBg = new PIXI.Graphics()
     buttonBg
-      .circle(0, 0, 25) // 円形ボタン
+      .circle(0, 0, UI_CONSTANTS.ACHIEVEMENT.BUTTON_RADIUS) // 円形ボタン
       .fill({ color: 0x1a1a1a, alpha: 0.8 })
       .stroke({ width: 2, color: 0xffd700, alpha: 0.7 }) // ゴールド色のボーダー
     
@@ -53,7 +55,7 @@ export class AchievementButton {
     buttonBg.on('pointerover', () => {
       buttonBg.clear()
       buttonBg
-        .circle(0, 0, 25)
+        .circle(0, 0, UI_CONSTANTS.ACHIEVEMENT.BUTTON_RADIUS)
         .fill({ color: 0xffd700, alpha: 0.3 }) // ホバー時はゴールド色
         .stroke({ width: 2, color: 0xffd700, alpha: 1.0 })
     })
@@ -61,7 +63,7 @@ export class AchievementButton {
     buttonBg.on('pointerout', () => {
       buttonBg.clear()
       buttonBg
-        .circle(0, 0, 25)
+        .circle(0, 0, UI_CONSTANTS.ACHIEVEMENT.BUTTON_RADIUS)
         .fill({ color: 0x1a1a1a, alpha: 0.8 })
         .stroke({ width: 2, color: 0xffd700, alpha: 0.7 })
     })
@@ -73,7 +75,7 @@ export class AchievementButton {
     this.button.addChild(buttonBg)
 
     // トロフィーアイコンを作成
-    const trophy = this.createTrophyIcon()
+    const trophy = TrophyIconRenderer.create()
     this.button.addChild(trophy)
 
     // Achievement数のバッジ（実績がある場合のみ）
@@ -82,48 +84,13 @@ export class AchievementButton {
     this.container.addChild(this.button)
   }
 
-  private createTrophyIcon(): PIXI.Graphics {
-    const trophy = new PIXI.Graphics()
-    
-    // トロフィーのカップ部分
-    trophy
-      .moveTo(-8, -5)
-      .lineTo(-8, 0)
-      .quadraticCurveTo(-8, 5, -3, 5)
-      .lineTo(3, 5)
-      .quadraticCurveTo(8, 5, 8, 0)
-      .lineTo(8, -5)
-      .quadraticCurveTo(8, -10, 3, -10)
-      .lineTo(-3, -10)
-      .quadraticCurveTo(-8, -10, -8, -5)
-      .fill({ color: 0xffd700 })
-
-    // トロフィーの持ち手（左右）
-    trophy
-      .circle(-10, -2, 2)
-      .fill({ color: 0xffd700 })
-    trophy
-      .circle(10, -2, 2)
-      .fill({ color: 0xffd700 })
-
-    // トロフィーの台座
-    trophy
-      .rect(-5, 5, 10, 3)
-      .fill({ color: 0xb8860b }) // ダークゴールド
-
-    trophy
-      .rect(-7, 8, 14, 2)
-      .fill({ color: 0xb8860b })
-
-    return trophy
-  }
 
   private createAchievementBadge(): void {
     if (this.achievementCount > 0) {
       // バッジの背景（右上に小さな円）
       const badge = new PIXI.Graphics()
       badge
-        .circle(15, -15, 8)
+        .circle(UI_CONSTANTS.ACHIEVEMENT.BADGE_X, UI_CONSTANTS.ACHIEVEMENT.BADGE_Y, UI_CONSTANTS.ACHIEVEMENT.BADGE_RADIUS)
         .fill({ color: 0xff0040, alpha: 0.9 })
         .stroke({ width: 1, color: 0xffffff, alpha: 0.8 })
 
@@ -132,14 +99,14 @@ export class AchievementButton {
         text: this.achievementCount.toString(),
         style: {
           fontFamily: 'Courier New, monospace',
-          fontSize: 10,
+          fontSize: UI_CONSTANTS.ACHIEVEMENT.BADGE_FONT_SIZE,
           fill: 0xffffff,
           fontWeight: 'bold'
         }
       })
       badgeText.anchor.set(0.5)
-      badgeText.x = 15
-      badgeText.y = -15
+      badgeText.x = UI_CONSTANTS.ACHIEVEMENT.BADGE_X
+      badgeText.y = UI_CONSTANTS.ACHIEVEMENT.BADGE_Y
 
       this.button.addChild(badge)
       this.button.addChild(badgeText)

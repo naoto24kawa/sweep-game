@@ -31,7 +31,6 @@ export class GameUICoordinator {
    */
   public showLevelSelector(): void {
     if (this.levelSelector && this.isInitialized) {
-      console.log('GameUICoordinator: Showing level selector')
       this.levelSelector.show()
     } else {
       console.warn('GameUICoordinator: Cannot show level selector - not initialized')
@@ -43,7 +42,6 @@ export class GameUICoordinator {
    */
   public showStatsModal(): void {
     if (this.statsModal && this.isInitialized) {
-      console.log('GameUICoordinator: Showing stats modal')
       this.statsModal.show()
     } else {
       console.warn('GameUICoordinator: Cannot show stats modal - not initialized')
@@ -69,7 +67,6 @@ export class GameUICoordinator {
    */
   public showAchievements(): void {
     if (this.achievementModal && this.isInitialized) {
-      console.log('GameUICoordinator: Showing achievement modal')
       this.achievementModal.show()
     } else {
       console.warn('GameUICoordinator: Cannot show achievement modal - not initialized')
@@ -81,7 +78,6 @@ export class GameUICoordinator {
    */
   public hideAllModals(): void {
     // 将来的に複数のモーダルがある場合の拡張ポイント
-    console.log('GameUICoordinator: Hiding all modals')
   }
   
   /**

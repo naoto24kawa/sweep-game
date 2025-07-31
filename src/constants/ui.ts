@@ -67,5 +67,22 @@ export const UI_CONSTANTS = {
     BLUR: 4,
     /** ドロップシャドウの透明度 */
     ALPHA: 0.8,
+  },
+  
+  ACHIEVEMENT: {
+    /** Achievementボタンの位置（左上からのオフセット） */
+    BUTTON_X: 40,
+    BUTTON_Y: 60,
+    /** Achievementボタンの半径 */
+    BUTTON_RADIUS: 25,
+    /** Achievementボタンのz-index */
+    BUTTON_Z_INDEX: 1000,
+    /** Achievement数バッジの位置（ボタン中心からのオフセット） */
+    BADGE_X: 15,
+    BADGE_Y: -15,
+    /** Achievement数バッジの半径 */
+    BADGE_RADIUS: 8,
+    /** Achievement数バッジのフォントサイズ */
+    BADGE_FONT_SIZE: 10,
   }
 } as const

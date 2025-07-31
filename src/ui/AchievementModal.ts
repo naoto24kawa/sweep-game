@@ -1,5 +1,7 @@
 import * as PIXI from 'pixi.js'
 import { StatsManager } from '@/stats/StatsManager'
+import { TrophyIconRenderer } from './TrophyIconRenderer'
+import { AchievementInfo, ACHIEVEMENT_DEFINITIONS } from '@/constants/achievements'
 
 interface AchievementModalOptions {
   onClose: () => void
@@ -7,11 +9,6 @@ interface AchievementModalOptions {
   canvasHeight?: number
 }
 
-interface AchievementInfo {
-  id: string
-  name: string
-  description: string
-}
 
 /**
  * Achievement一覧表示モーダル
@@ -37,16 +34,12 @@ export class AchievementModal {
     // レンダリング順序を最前面に設定
     this.container.zIndex = 10001
     this.stage.sortableChildren = true
-    
-    console.log('🏆 AchievementModal created')
   }
 
   private setupUI(): void {
     // キャンバスサイズを取得
     const canvasWidth = this.options.canvasWidth || 800
     const canvasHeight = this.options.canvasHeight || 600
-    
-    console.log('📐 Canvas size for AchievementModal:', { canvasWidth, canvasHeight })
 
     // オーバーレイ（背景）
     this.overlay
@@ -82,13 +75,6 @@ export class AchievementModal {
     const modalWidth = Math.max(400, maxModalWidth)
     const modalHeight = Math.max(350, maxModalHeight)
     
-    console.log('📐 Achievement modal size calculated:', { 
-      modalWidth, 
-      modalHeight, 
-      canvasWidth, 
-      canvasHeight 
-    })
-    
     // モーダル背景
     const modalBg = new PIXI.Graphics()
     modalBg
@@ -112,7 +98,7 @@ export class AchievementModal {
   }
 
   private createAchievementGrid(modalWidth: number, modalHeight: number): void {
-    const achievements = this.getAllAchievements()
+    const achievements = ACHIEVEMENT_DEFINITIONS
     const obtainedAchievements = this.statsManager.getAchievements()
     
     // グリッド設定
@@ -165,7 +151,11 @@ export class AchievementModal {
     card.addChild(cardBg)
     
     // アイコン（トロフィー）
-    const icon = this.createAchievementIcon(obtained)
+    const icon = TrophyIconRenderer.create({ 
+      scale: 0.8, 
+      color: obtained ? 0xffd700 : 0x666666,
+      darkColor: obtained ? 0xb8860b : 0x444444
+    })
     icon.y = -height / 4
     card.addChild(icon)
     
@@ -191,43 +181,6 @@ export class AchievementModal {
     this.modalContainer.addChild(card)
   }
 
-  private createAchievementIcon(obtained: boolean): PIXI.Graphics {
-    const icon = new PIXI.Graphics()
-    const color = obtained ? 0xffd700 : 0x666666
-    const scale = 0.8
-    
-    // トロフィーのカップ部分
-    icon
-      .moveTo(-6 * scale, -4 * scale)
-      .lineTo(-6 * scale, 0)
-      .quadraticCurveTo(-6 * scale, 4 * scale, -2 * scale, 4 * scale)
-      .lineTo(2 * scale, 4 * scale)
-      .quadraticCurveTo(6 * scale, 4 * scale, 6 * scale, 0)
-      .lineTo(6 * scale, -4 * scale)
-      .quadraticCurveTo(6 * scale, -8 * scale, 2 * scale, -8 * scale)
-      .lineTo(-2 * scale, -8 * scale)
-      .quadraticCurveTo(-6 * scale, -8 * scale, -6 * scale, -4 * scale)
-      .fill({ color })
-
-    // トロフィーの持ち手（左右）
-    icon
-      .circle(-8 * scale, -1.5 * scale, 1.5 * scale)
-      .fill({ color })
-    icon
-      .circle(8 * scale, -1.5 * scale, 1.5 * scale)
-      .fill({ color })
-
-    // トロフィーの台座
-    icon
-      .rect(-4 * scale, 4 * scale, 8 * scale, 2 * scale)
-      .fill({ color })
-
-    icon
-      .rect(-5 * scale, 6 * scale, 10 * scale, 1.5 * scale)
-      .fill({ color })
-
-    return icon
-  }
 
   private createCloseButton(_modalWidth: number, modalHeight: number): void {
     const buttonY = modalHeight / 2 - 40
@@ -309,58 +262,8 @@ export class AchievementModal {
     })
   }
 
-  private getAllAchievements(): AchievementInfo[] {
-    return [
-      {
-        id: 'first_win',
-        name: '初勝利',
-        description: '初めて勝利する'
-      },
-      {
-        id: 'veteran',
-        name: 'ベテラン',
-        description: '10回勝利する'
-      },
-      {
-        id: 'master',
-        name: 'マスター',  
-        description: '100回勝利する'
-      },
-      {
-        id: 'speed_novice',
-        name: 'ノービス速攻',
-        description: 'ノービスを60秒以内でクリア'
-      },
-      {
-        id: 'speed_agent',
-        name: 'エージェント速攻',
-        description: 'エージェントを5分以内でクリア'
-      },
-      {
-        id: 'speed_hacker',
-        name: 'ハッカー速攻',
-        description: 'ハッカーを10分以内でクリア'
-      },
-      {
-        id: 'streak_5',
-        name: '連勝5',
-        description: '5連勝を達成する'
-      },
-      {
-        id: 'streak_10',
-        name: '連勝10',
-        description: '10連勝を達成する'
-      },
-      {
-        id: 'perfect_flags',
-        name: '完璧なフラグ',
-        description: '全ての地雷にフラグを立ててクリア'
-      }
-    ]
-  }
 
   public show(): void {
-    console.log('🏆 AchievementModal.show() called')
     if (!this.isVisible) {
       // モーダルコンテンツを再作成（Achievement状態に応じて表示を更新）
       this.modalContainer.removeChildren()

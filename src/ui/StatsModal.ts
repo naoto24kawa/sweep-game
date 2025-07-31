@@ -38,15 +38,12 @@ export class StatsModal {
     this.container.zIndex = 10000
     this.stage.sortableChildren = true
     
-    console.log('📊 StatsModal created')
   }
 
   private setupUI(): void {
     // キャンバスサイズを取得
     const canvasWidth = this.options.canvasWidth || 800
     const canvasHeight = this.options.canvasHeight || 600
-    
-    console.log('📐 Canvas size for StatsModal:', { canvasWidth, canvasHeight })
 
     // オーバーレイ（背景）
     this.overlay
@@ -80,13 +77,6 @@ export class StatsModal {
     // 最小サイズを保証
     const modalWidth = Math.max(300, maxModalWidth)
     const modalHeight = Math.max(250, maxModalHeight)
-    
-    console.log('📐 Stats modal size calculated:', { 
-      modalWidth, 
-      modalHeight, 
-      canvasWidth, 
-      canvasHeight 
-    })
     
     // モーダル背景
     const modalBg = new PIXI.Graphics()
@@ -335,7 +325,6 @@ export class StatsModal {
   }
 
   public show(): void {
-    console.log('📊 StatsModal.show() called')
     if (!this.isVisible) {
       // モーダルコンテンツを再作成（ゲーム状態に応じて表示を更新）
       this.modalContainer.removeChildren()

@@ -72,7 +72,6 @@ export class GameUI {
   }
 
   private setupUI(): void {
-    console.log('🎮 Setting up GameUI')
     
     // レイアウト計算（専用クラスに委譲）
     const position = this.layout.calculateContainerPosition()

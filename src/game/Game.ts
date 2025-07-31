@@ -25,7 +25,6 @@ export class Game {
   }
 
   private async initializeAsync(container: HTMLElement, difficulty: Difficulty): Promise<void> {
-    console.log('Game: Starting initialization')
     
     try {
       // GameBootstrapperを使用して全コンポーネントを初期化
@@ -59,7 +58,6 @@ export class Game {
       
       this.uiCoordinator.markAsInitialized()
       
-      console.log('Game: Initialization complete')
       
       // レベル選択画面を表示
       setTimeout(() => {
@@ -104,27 +102,22 @@ export class Game {
   }
 
   private handleLevelSelection(difficulty: Difficulty): void {
-    console.log('Level selected:', difficulty)
     if (difficulty !== this.lifecycleManager.getCurrentDifficulty()) {
       this.changeDifficulty(difficulty)
     }
   }
 
   private handleLevelSelectorClose(): void {
-    console.log('Level selector closed')
   }
 
   private handleStatsModalClose(): void {
-    console.log('Stats modal closed')
   }
 
   private handleStatsModalRestart(): void {
-    console.log('Stats modal restart requested')
     this.restart()
   }
 
   private handleStatsModalLevelSelect(): void {
-    console.log('Stats modal level select requested')
     this.showLevelSelector()
   }
 
