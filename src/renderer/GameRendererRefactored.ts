@@ -18,8 +18,27 @@ export class GameRendererRefactored {
     this.pixiAppManager = new PixiAppManager()
     
     const config = gameLogic.getConfig()
-    const canvasWidth = config.width * (32 + 2) - 2  // cellSize + cellSpacing
-    const canvasHeight = config.height * (32 + 2) - 2
+    const gameWidth = config.width * (32 + 2) - 2  // cellSize + cellSpacing
+    const gameHeight = config.height * (32 + 2) - 2
+    
+    // statsパネル用のスペースを追加
+    const headerHeight = 100
+    const gridYPosition = 120
+    const statsHeight = 180  // statsパネル自体の高さ
+    const statsMargin = 40   // statsパネル上下のマージン
+    const canvasWidth = gameWidth
+    const canvasHeight = headerHeight + gridYPosition + gameHeight + statsHeight + statsMargin
+    
+    console.log('🎨 Canvas size calculation:', { 
+      gameWidth, 
+      gameHeight, 
+      headerHeight,
+      gridYPosition,
+      statsHeight, 
+      statsMargin,
+      canvasWidth, 
+      canvasHeight 
+    })
 
     this.initializationPromise = this.initialize(gameLogic, soundManager, canvasWidth, canvasHeight)
   }
@@ -44,7 +63,7 @@ export class GameRendererRefactored {
 
     this.eventHandler = new GridEventHandler(
       gameLogic,
-      this.pixiAppManager.getAnimationManager(),
+      // this.pixiAppManager.getAnimationManager(),  // 削除
       this.pixiAppManager.getEffectManager(),
       soundManager || null,
       () => this.updateDisplay()

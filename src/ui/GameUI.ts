@@ -14,6 +14,7 @@ export class GameUI {
   private mineCountText: PIXI.Text
   private statusText: PIXI.Text
   private statsPanel: PIXI.Container
+  private statsTexts: PIXI.Text[] = []
   
   private startTime: number | null = null
   private currentTime: number = 0
@@ -63,11 +64,18 @@ export class GameUI {
   }
 
   private setupUI(): void {
+    console.log('🎮 Setting up GameUI')
     const headerHeight = 80
     const config = this.gameLogic.getConfig()
     const gameWidth = config.width * 34 - 2
     
-    this.container.y = -headerHeight - 20
+    console.log('⚙️ Game config:', config)
+    console.log('📏 Calculated game width:', gameWidth)
+    
+    // コンテナを画面上部に配置（負の値を使わない）
+    this.container.y = 20
+    
+    console.log('📦 Container position:', { x: this.container.x, y: this.container.y })
 
     const headerBg = new PIXI.Graphics()
     headerBg
@@ -128,13 +136,25 @@ export class GameUI {
   }
 
   private setupStatsPanel(gameWidth: number): void {
-    // statsパネルをゲーム領域の右側に配置
-    this.statsPanel.x = gameWidth + 20
-    this.statsPanel.y = 0
+    console.log('🔧 Setting up stats panel')
+    console.log('📊 Game width:', gameWidth)
+    
+    const config = this.gameLogic.getConfig()
+    const gameHeight = config.height * (32 + 2) - 2
+    
+    // statsパネルをゲーム領域の下に配置（完全にゲーム領域外）
+    this.statsPanel.x = 0
+    const gridYPosition = 120
+    this.statsPanel.y = gridYPosition + gameHeight + 20  // グリッド位置 + ゲーム高さ + マージン
+    
+    console.log('📍 Stats panel position:', { x: this.statsPanel.x, y: this.statsPanel.y })
+    console.log('🎮 Game dimensions:', { gameWidth, gameHeight })
 
     const stats = this.statsManager.getStats()
-    const panelHeight = 160
-    const panelWidth = 250
+    console.log('📈 Current stats:', stats)
+    
+    const panelHeight = 180
+    const panelWidth = gameWidth  // キャンバス幅に合わせる
 
     const panelBg = new PIXI.Graphics()
     panelBg
@@ -142,6 +162,8 @@ export class GameUI {
       .fill({ color: NEON_COLORS.primary.deepBlack, alpha: 0.9 })
       .stroke({ width: 2, color: NEON_COLORS.accent.neonBlue, alpha: 0.7 })
     this.statsPanel.addChild(panelBg)
+    
+    console.log('🎨 Stats panel background created:', { width: panelWidth, height: panelHeight })
 
     const statsTitle = this.createText('STATS', 16)
     statsTitle.style.fill = NEON_COLORS.accent.neonBlue
@@ -149,48 +171,56 @@ export class GameUI {
     statsTitle.y = 10
     this.statsPanel.addChild(statsTitle)
 
+    // 左側の列
     const gamesText = this.createText(`Games: ${stats.totalGames}`, 12)
     gamesText.x = 15
     gamesText.y = 35
     this.statsPanel.addChild(gamesText)
+    this.statsTexts.push(gamesText)
 
     const winsText = this.createText(`Wins: ${stats.totalWins}`, 12)
     winsText.x = 15
-    winsText.y = 50
+    winsText.y = 55
     this.statsPanel.addChild(winsText)
+    this.statsTexts.push(winsText)
 
     const winRateText = this.createText(`Win Rate: ${stats.winRate.toFixed(1)}%`, 12)
     winRateText.x = 15
-    winRateText.y = 65
+    winRateText.y = 75
     this.statsPanel.addChild(winRateText)
+    this.statsTexts.push(winRateText)
 
+    // 右側の列
     const streakText = this.createText(`Streak: ${stats.streaks.current} (Best: ${stats.streaks.best})`, 12)
-    streakText.x = 15
-    streakText.y = 80
+    streakText.x = panelWidth / 2 + 10
+    streakText.y = 35
     this.statsPanel.addChild(streakText)
+    this.statsTexts.push(streakText)
 
     const bestTimeText = this.createText(
       `Best Time: ${stats.bestTimes[this.gameLogic.getConfig().difficulty] ? 
         this.statsManager.formatTime(stats.bestTimes[this.gameLogic.getConfig().difficulty]!) : 'N/A'}`, 
       12
     )
-    bestTimeText.x = 15
-    bestTimeText.y = 95
+    bestTimeText.x = panelWidth / 2 + 10
+    bestTimeText.y = 55
     this.statsPanel.addChild(bestTimeText)
+    this.statsTexts.push(bestTimeText)
 
     const avgTimeText = this.createText(
       `Avg Time: ${stats.averageGameTime > 0 ? this.statsManager.formatTime(stats.averageGameTime) : 'N/A'}`, 
       12
     )
-    avgTimeText.x = 15
-    avgTimeText.y = 110
+    avgTimeText.x = panelWidth / 2 + 10
+    avgTimeText.y = 75
     this.statsPanel.addChild(avgTimeText)
+    this.statsTexts.push(avgTimeText)
 
     if (stats.achievements.length > 0) {
       const achievementsText = this.createText('Recent Achievement:', 12)
       achievementsText.style.fill = NEON_COLORS.warning.neonOrange
       achievementsText.x = 15
-      achievementsText.y = 125
+      achievementsText.y = 100
       this.statsPanel.addChild(achievementsText)
 
       const recentAchievement = this.createText(
@@ -199,11 +229,17 @@ export class GameUI {
       )
       recentAchievement.style.fill = NEON_COLORS.warning.neonOrange
       recentAchievement.x = 15
-      recentAchievement.y = 140
+      recentAchievement.y = 115
       this.statsPanel.addChild(recentAchievement)
     }
 
+    this.statsPanel.visible = true  // デフォルトで表示
     this.container.addChild(this.statsPanel)
+    
+    console.log('✅ Stats panel setup complete')
+    console.log('👁️ Stats panel visible:', this.statsPanel.visible)
+    console.log('🏗️ Stats panel children count:', this.statsPanel.children.length)
+    console.log('📦 Container children count:', this.container.children.length)
   }
 
   public update(): void {
@@ -260,12 +296,34 @@ export class GameUI {
     }
 
     this.centerStatusText()
+    this.updateStatsPanel()
   }
 
   private centerStatusText(): void {
     const config = this.gameLogic.getConfig()
     const gameWidth = config.width * 34 - 2
     this.statusText.x = gameWidth / 2 - this.statusText.width / 2
+  }
+
+  private updateStatsPanel(): void {
+    if (!this.statsPanel.visible || this.statsTexts.length === 0) return
+
+    const stats = this.statsManager.getStats()
+    const config = this.gameLogic.getConfig()
+
+    // 各statsテキストを更新
+    if (this.statsTexts[0]) this.statsTexts[0].text = `Games: ${stats.totalGames}`
+    if (this.statsTexts[1]) this.statsTexts[1].text = `Wins: ${stats.totalWins}`
+    if (this.statsTexts[2]) this.statsTexts[2].text = `Win Rate: ${stats.winRate.toFixed(1)}%`
+    if (this.statsTexts[3]) this.statsTexts[3].text = `Streak: ${stats.streaks.current} (Best: ${stats.streaks.best})`
+    if (this.statsTexts[4]) {
+      this.statsTexts[4].text = `Best Time: ${stats.bestTimes[config.difficulty] ? 
+        this.statsManager.formatTime(stats.bestTimes[config.difficulty]!) : 'N/A'}`
+    }
+    if (this.statsTexts[5]) {
+      this.statsTexts[5].text = `Avg Time: ${stats.averageGameTime > 0 ? 
+        this.statsManager.formatTime(stats.averageGameTime) : 'N/A'}`
+    }
   }
 
   private formatTime(seconds: number): string {

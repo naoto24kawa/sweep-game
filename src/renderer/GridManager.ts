@@ -64,15 +64,26 @@ export class GridManager {
   }
 
   /**
-   * グリッドを中央に配置
+   * グリッドを適切な位置に配置（ヘッダーの下、中央揃え）
    */
   private centerGrid(): void {
     const config = this.gameLogic.getConfig()
     const gridWidth = config.width * (this.cellSize + this.cellSpacing) - this.cellSpacing
     const gridHeight = config.height * (this.cellSize + this.cellSpacing) - this.cellSpacing
 
-    this.gridContainer.x = (this.app.screen.width - gridWidth) / 2
-    this.gridContainer.y = (this.app.screen.height - gridHeight) / 2
+    // グリッドが画面幅と同じ場合は左端に配置、そうでなければ中央に配置
+    this.gridContainer.x = gridWidth >= this.app.screen.width ? 0 : (this.app.screen.width - gridWidth) / 2
+    this.gridContainer.y = 120  // ヘッダー（100px）の下に配置
+    
+    console.log('🎯 Grid positioned:', { 
+      x: this.gridContainer.x, 
+      y: this.gridContainer.y, 
+      gridWidth, 
+      gridHeight,
+      screenWidth: this.app.screen.width,
+      screenHeight: this.app.screen.height,
+      calculation: `(${this.app.screen.width} - ${gridWidth}) / 2 = ${(this.app.screen.width - gridWidth) / 2}`
+    })
   }
 
   /**

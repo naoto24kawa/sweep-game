@@ -44,6 +44,10 @@ export class Game {
     await this.renderer.waitForReady()
     
     console.log('Renderer ready, creating GameUI')
+    const canvas = this.renderer.getCanvas()
+    console.log('🖼️ Canvas size:', { width: canvas.width, height: canvas.height })
+    console.log('🎬 Stage size:', { width: this.renderer.getApp().screen.width, height: this.renderer.getApp().screen.height })
+    
     this.gameUI = new GameUI(this.renderer.getApp().stage, this.gameLogic, this.statsManager, this.settingsManager)
     
     this.domHandler.setupCanvas(this.renderer.getCanvas())

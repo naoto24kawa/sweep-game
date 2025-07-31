@@ -1,7 +1,7 @@
 import * as PIXI from 'pixi.js'
 import { GameLogic } from '@/game/GameLogic'
 import { CellState, RENDER_CONSTANTS, CellClickInfo, ActionResult } from '@/types'
-import { AnimationManager } from '@/animation/AnimationManager'
+// import { AnimationManager } from '@/animation/AnimationManager'  // 未使用のため削除
 import { EffectManager } from '@/effects/EffectManager'
 import { SoundManager, SoundType } from '@/audio/SoundManager'
 
@@ -15,17 +15,25 @@ export class GridEventHandler {
 
   constructor(
     private gameLogic: GameLogic,
-    private animationManager: AnimationManager,
+    // private animationManager: AnimationManager,  // 未使用のため削除
     private effectManager: EffectManager,
     private soundManager: SoundManager | null,
     private onDisplayUpdate: () => void
   ) {}
+
+  private gridOffset = { x: 0, y: 120 }  // グリッドコンテナのオフセット
 
   /**
    * グリッドコンテナにイベントハンドラーを設定
    * @param gridContainer PIXIグリッドコンテナ
    */
   public setupEventHandlers(gridContainer: PIXI.Container): void {
+    // グリッドの実際の位置を記録
+    this.gridOffset.x = gridContainer.x
+    this.gridOffset.y = gridContainer.y
+    
+    console.log('🎯 GridEventHandler: Grid offset recorded:', this.gridOffset)
+    
     this.setupContainerEventMode(gridContainer)
     this.registerClickHandlers(gridContainer)
     this.registerHoverHandlers(gridContainer)
@@ -127,14 +135,17 @@ export class GridEventHandler {
   }
 
   /**
-   * ワールド座標を計算
+   * ワールド座標を計算（グリッドオフセットを考慮）
    * @param coordinates セル座標
    * @returns ワールド座標
    */
   private calculateWorldPosition(coordinates: { x: number; y: number }): { x: number; y: number } {
+    const localX = coordinates.x * (this.cellSize + this.cellSpacing)
+    const localY = coordinates.y * (this.cellSize + this.cellSpacing)
+    
     return {
-      x: coordinates.x * (this.cellSize + this.cellSpacing),
-      y: coordinates.y * (this.cellSize + this.cellSpacing)
+      x: localX + this.gridOffset.x,
+      y: localY + this.gridOffset.y
     }
   }
 
@@ -174,7 +185,7 @@ export class GridEventHandler {
    * @param cellInfo セル情報
    */
   private playInteractionEffects(actionResult: ActionResult, cellInfo: CellClickInfo): void {
-    const { worldPosition, container } = cellInfo
+    const { worldPosition } = cellInfo
     
     switch (actionResult.effectType) {
       case 'explosion':
@@ -189,7 +200,8 @@ export class GridEventHandler {
         break
       case 'flag':
         this.effectManager.createFlagEffect(worldPosition.x, worldPosition.y, this.cellSize)
-        this.animationManager.bounce(container, RENDER_CONSTANTS.ANIMATION.BOUNCE_DURATION)
+        // bounceアニメーションを無効化（ブロックサイズを変更させない）
+        // this.animationManager.bounce(container, RENDER_CONSTANTS.ANIMATION.BOUNCE_DURATION)
         if (this.soundManager) this.soundManager.play(SoundType.FLAG)
         break
     }
