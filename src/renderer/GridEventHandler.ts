@@ -106,6 +106,8 @@ export class GridEventHandler {
 
   /**
    * ポインターアップイベントを処理
+   * 複雑なクリック判定ロジック：長押し、ダブルクリック、通常クリックを区別
+   * タイミングベースの状態管理でユーザー意図を正確に判定
    * @param event PIXIポインターイベント
    */
   private handlePointerUp(event: PIXI.FederatedPointerEvent): void {
@@ -116,19 +118,19 @@ export class GridEventHandler {
       const currentTime = Date.now()
       const cellInfo = this.longPressTarget
       
-      // ダブルクリック判定
+      // ダブルクリック判定：同じセルを300ms以内に再クリック
       if (this.lastClickTarget && 
           this.lastClickTarget.coordinates.x === cellInfo.coordinates.x &&
           this.lastClickTarget.coordinates.y === cellInfo.coordinates.y &&
           currentTime - this.lastClickTime < this.DOUBLE_CLICK_DURATION) {
         
-        // ダブルクリック: フラッグ切り替え
+        // ダブルクリック: フラッグ切り替え（PCでの右クリックの代替）
         this.handleDoubleClick(cellInfo)
         this.clearDoubleClickTimer()
         this.lastClickTarget = null
         this.lastClickTime = 0
       } else {
-        // 通常クリック: 遅延実行でダブルクリックを待つ
+        // 通常クリック: 遅延実行でダブルクリックを待つ（300msタイマー）
         this.scheduleNormalClick(event, cellInfo)
         this.lastClickTarget = cellInfo
         this.lastClickTime = currentTime

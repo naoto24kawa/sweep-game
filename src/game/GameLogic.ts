@@ -39,7 +39,14 @@ export class GameLogic {
     return cells
   }
 
+  /**
+   * 地雷を配置する（最初のクリック時に実行）
+   * アルゴリズム: Fisher-Yates風シャッフルで公平なランダム配置を実現
+   * @param excludeX 最初にクリックされたセルのX座標（地雷を配置しない）
+   * @param excludeY 最初にクリックされたセルのY座標（地雷を配置しない）
+   */
   private placeMines(excludeX: number, excludeY: number): void {
+    // 最初のクリック位置を除く全セルを候補として収集
     const availableCells: { x: number; y: number }[] = []
 
     for (let y = 0; y < this.config.height; y++) {
@@ -50,6 +57,7 @@ export class GameLogic {
       }
     }
 
+    // Fisher-Yates風アルゴリズムでランダムに地雷を配置
     for (let i = 0; i < this.config.mines; i++) {
       if (availableCells.length === 0) break
       
@@ -58,6 +66,7 @@ export class GameLogic {
       this.cells[y][x].isMine = true
     }
 
+    // 地雷配置完了後、各セルの隣接地雷数を計算
     this.calculateAdjacentMines()
   }
 
@@ -71,11 +80,19 @@ export class GameLogic {
     }
   }
 
+  /**
+   * 指定セルの周囲8方向の地雷数をカウント
+   * マインスイーパーの基本アルゴリズム：3x3グリッドを走査して中央を除外
+   * @param x セルのX座標
+   * @param y セルのY座標
+   * @returns 隣接地雷数（0-8）
+   */
   private countAdjacentMines(x: number, y: number): number {
     let count = 0
+    // 3x3の範囲をチェック（-1, -1から+1, +1まで）
     for (let dy = -1; dy <= 1; dy++) {
       for (let dx = -1; dx <= 1; dx++) {
-        if (dx === 0 && dy === 0) continue
+        if (dx === 0 && dy === 0) continue // 中央セル（自分自身）は除外
         const nx = x + dx
         const ny = y + dy
         if (this.isValidCell(nx, ny) && this.cells[ny][nx].isMine) {
@@ -126,10 +143,18 @@ export class GameLogic {
     return true
   }
 
+  /**
+   * 隣接セルを再帰的に開放（連鎖開放アルゴリズム）
+   * 空セル（adjacentMines=0）をクリックした時の典型的な挙動
+   * Flood Fill アルゴリズムの変形で、境界は地雷または数字セルまで
+   * @param x 開始セルのX座標
+   * @param y 開始セルのY座標
+   */
   private revealAdjacentCells(x: number, y: number): void {
+    // 8方向の隣接セルを走査
     for (let dy = -1; dy <= 1; dy++) {
       for (let dx = -1; dx <= 1; dx++) {
-        if (dx === 0 && dy === 0) continue
+        if (dx === 0 && dy === 0) continue // 中央（自分自身）は除外
         const nx = x + dx
         const ny = y + dy
         if (this.isValidCell(nx, ny)) {
@@ -139,6 +164,7 @@ export class GameLogic {
             this.stats.cellsRevealed++
             
             // 隣接セルも空（adjacentMines === 0）なら再帰的に開放
+            // これによりマインスイーパー特有の「連鎖開放」が実現される
             if (adjacentCell.adjacentMines === 0) {
               this.revealAdjacentCells(nx, ny)
             }
@@ -169,11 +195,17 @@ export class GameLogic {
     return true
   }
 
+  /**
+   * 勝利条件をチェック
+   * マインスイーパーの勝利条件：地雷以外の全セルが開放されること
+   * 数式：開放セル数 = 全セル数 - 地雷数
+   */
   private checkWinCondition(): void {
     const totalCells = this.config.width * this.config.height
     const revealedCells = this.stats.cellsRevealed
     const mineCells = this.config.mines
 
+    // 地雷以外の全セルが開放されたら勝利
     if (revealedCells === totalCells - mineCells) {
       this.gameState = GameState.SUCCESS
       this.stats.endTime = Date.now()

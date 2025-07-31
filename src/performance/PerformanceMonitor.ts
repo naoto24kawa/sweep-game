@@ -21,9 +21,16 @@ export class PerformanceMonitor {
     this.callback = null
   }
 
+  /**
+   * パフォーマンス数値を更新（メインループ）
+   * requestAnimationFrameで呼び出されるフレーム毎の処理
+   * FPS計算アルゴリズム: 1000ms / deltaTimeで瞬間FPSを算出
+   * 移動平均: 過去60フレームの平均で安定したFPSを表示
+   */
   private update(): void {
     if (!this.isMonitoring) return
 
+    // フレーム間の時間差を計算（ミリ秒単位）
     const currentTime = performance.now()
     this.deltaTime = currentTime - this.lastFrameTime
     this.lastFrameTime = currentTime
@@ -31,18 +38,22 @@ export class PerformanceMonitor {
     this.frameCount++
     
     if (this.deltaTime > 0) {
+      // 瞬間FPS = 1秒（1000ms） / フレーム間隔
       this.fps = 1000 / this.deltaTime
       this.fpsHistory.push(this.fps)
       
+      // 履歴を過去60フレーム（約1秒間）に制限
       if (this.fpsHistory.length > 60) {
-        this.fpsHistory.shift()
+        this.fpsHistory.shift() // 古いデータを削除
       }
       
+      // 移動平均で安定したFPS値を算出
       this.averageFps = this.fpsHistory.reduce((sum, fps) => sum + fps, 0) / this.fpsHistory.length
     }
 
     this.updateMemoryStats()
 
+    // コールバックでリアルタイム統計を通知
     if (this.callback) {
       this.callback({
         fps: Math.round(this.fps),
@@ -53,6 +64,7 @@ export class PerformanceMonitor {
       })
     }
 
+    // 次フレームで再帰呼び出し（メインループ継続）
     requestAnimationFrame(() => this.update())
   }
 
@@ -83,6 +95,11 @@ export class PerformanceMonitor {
     this.averageFps = 0
   }
 
+  /**
+   * 低パフォーマンス状態を判定
+   * 闾値: 30FPS未満で、かつ十分なサンプル数（半秒以上）がある場合
+   * @returns 低パフォーマンスならtrue
+   */
   public isLowPerformance(): boolean {
     return this.averageFps < 30 && this.fpsHistory.length > 30
   }

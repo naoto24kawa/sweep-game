@@ -131,6 +131,12 @@ export class CellRenderer {
    * フラググラフィックを作成
    * @returns PIXIグラフィックオブジェクト
    */
+  /**
+   * フラググラフィックを作成
+   * ベクター描画で三角形の旗と縦線のポールを描画
+   * 座標計算：セル中央を基準にした相対位置指定
+   * @returns PIXIグラフィックオブジェクト
+   */
   private createFlagGraphics(): PIXI.Graphics {
     const flag = new PIXI.Graphics()
     
@@ -138,6 +144,7 @@ export class CellRenderer {
     const centerY = this.cellSize / 2
     
     // フラグの三角形（サイズを縮小し、中心に配置）
+    // 三角形の頂点座標：左上、右中、左下の順で描画
     flag.poly([
       centerX - 3, centerY - 6,   // 左上
       centerX + 6, centerY - 1,   // 右中
@@ -146,6 +153,7 @@ export class CellRenderer {
     flag.fill(NEON_COLORS.warning.neonOrange)
 
     // フラグのポール（中心に配置）
+    // 旗の左端から下方向に縦線を描画
     flag.moveTo(centerX - 3, centerY - 6)
     flag.lineTo(centerX - 3, centerY + 8)
     flag.stroke({ width: 2, color: NEON_COLORS.text.lightGray })
@@ -186,17 +194,24 @@ export class CellRenderer {
    * 地雷グラフィックを作成
    * @returns PIXIグラフィックオブジェクト
    */
+  /**
+   * 地雷グラフィックを作成
+   * 中央の円と放射状に伸びる8本の針で地雷を表現
+   * 座標計算：45度ずつ回転した放射状の針を三角関数で描画
+   * @returns PIXIグラフィックオブジェクト
+   */
   private createMineGraphics(): PIXI.Graphics {
     const mine = new PIXI.Graphics()
     
-    // 地雷の円
+    // 地雷の円形本体（半径8pxの円）
     mine
       .circle(this.cellSize / 2, this.cellSize / 2, 8)
       .fill({ color: NEON_COLORS.warning.neonRed })
 
-    // 地雷の針
+    // 地雷の放射状の針（8本、45度間隔）
     for (let i = 0; i < 8; i++) {
-      const angle = (i * Math.PI) / 4
+      const angle = (i * Math.PI) / 4 // 45度 = π/4 ラジアン
+      // 円の縁から針を伸ばす（内側半径4px、外側半径12px）
       const startX = this.cellSize / 2 + Math.cos(angle) * 4
       const startY = this.cellSize / 2 + Math.sin(angle) * 4
       const endX = this.cellSize / 2 + Math.cos(angle) * 12

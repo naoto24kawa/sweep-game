@@ -1,5 +1,7 @@
 import { GameLogic } from '@/game/GameLogic'
 import { SoundManager } from '@/audio/SoundManager'
+import { DeviceDetector } from '@/core/DeviceDetector'
+import { CanvasSizeCalculator } from './CanvasSizeCalculator'
 import { PixiAppManager } from './PixiAppManager'
 import { GridManager } from './GridManager'
 import { GridEventHandler } from './GridEventHandler'
@@ -7,51 +9,33 @@ import { GridEventHandler } from './GridEventHandler'
 /**
  * リファクタリングされたGameRenderer
  * 責任が明確に分離され、各専門クラスを統合管理
+ * デバイス判定とサイズ計算は専用クラスに委譲
  */
 export class GameRenderer {
   private pixiAppManager: PixiAppManager
   private gridManager!: GridManager
   private eventHandler!: GridEventHandler
   private initializationPromise: Promise<void>
+  private deviceDetector: DeviceDetector
+  private sizeCalculator: CanvasSizeCalculator
 
   constructor(gameLogic: GameLogic, soundManager?: SoundManager) {
     this.pixiAppManager = new PixiAppManager()
+    this.deviceDetector = DeviceDetector.getInstance()
+    this.sizeCalculator = new CanvasSizeCalculator()
     
+    // 専用クラスでキャンバスサイズを計算
     const config = gameLogic.getConfig()
-    const gameWidth = config.width * (32 + 2) - 2  // cellSize + cellSpacing
-    const gameHeight = config.height * (32 + 2) - 2
+    const sizeInfo = this.sizeCalculator.calculateCanvasSize(config)
     
-    // デバイス検出
-    const isMobile = this.isMobileDevice()
-    
-    let canvasWidth: number
-    let canvasHeight: number
-    
-    if (isMobile) {
-      // スマートフォンでは画面いっぱいに設定
-      canvasWidth = window.innerWidth
-      canvasHeight = window.innerHeight
-      console.log('📱 Mobile device detected - using full screen:', { canvasWidth, canvasHeight })
-    } else {
-      // PCでは従来通りゲームサイズに基づいて計算
-      const headerHeight = 100
-      const gridYPosition = 120
-      const statsHeight = 180  // statsパネル自体の高さ
-      const statsMargin = 40   // statsパネル上下のマージン
-      canvasWidth = gameWidth
-      canvasHeight = headerHeight + gridYPosition + gameHeight + statsHeight + statsMargin
-      console.log('💻 Desktop device - using calculated size')
-    }
-    
-    console.log('🎨 Final canvas size:', { 
-      gameWidth, 
-      gameHeight, 
-      canvasWidth, 
-      canvasHeight,
-      isMobile
-    })
+    console.log(`📱 ${sizeInfo.deviceType.toUpperCase()} device detected - using ${sizeInfo.isResponsive ? 'responsive' : 'fixed'} layout`)
 
-    this.initializationPromise = this.initialize(gameLogic, soundManager, canvasWidth, canvasHeight)
+    this.initializationPromise = this.initialize(
+      gameLogic, 
+      soundManager, 
+      sizeInfo.canvas.width, 
+      sizeInfo.canvas.height
+    )
   }
 
   /**
@@ -93,30 +77,11 @@ export class GameRenderer {
   }
 
   /**
-   * モバイルデバイスかどうかを判定
-   * @returns モバイルデバイスの真偽値
+   * デバイス情報を取得（デバッグ用）
+   * @returns デバイス情報
    */
-  private isMobileDevice(): boolean {
-    // User-Agentベースの基本的な判定
-    const userAgent = navigator.userAgent.toLowerCase()
-    const mobileKeywords = ['mobile', 'android', 'iphone', 'ipad', 'ipod', 'blackberry', 'windows phone']
-    const isMobileUA = mobileKeywords.some(keyword => userAgent.includes(keyword))
-    
-    // 画面サイズベースの判定
-    const isMobileScreen = window.innerWidth <= 768
-    
-    // タッチデバイスの判定
-    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0
-    
-    console.log('🔍 Device detection:', { 
-      userAgent: userAgent.substring(0, 50) + '...', 
-      isMobileUA, 
-      isMobileScreen, 
-      isTouchDevice,
-      screenSize: { width: window.innerWidth, height: window.innerHeight }
-    })
-    
-    return isMobileUA || (isMobileScreen && isTouchDevice)
+  public getDeviceInfo() {
+    return this.deviceDetector.getDeviceInfo()
   }
 
   /**

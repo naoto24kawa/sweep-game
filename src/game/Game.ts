@@ -1,169 +1,112 @@
 import { GameLogic } from '@/game/GameLogic'
-import { GameRenderer } from '@/renderer/GameRenderer'
-import { GameUI } from '@/ui/GameUI'
-import { DOMHandler } from '@/ui/DOMHandler'
-import { EventManager } from '@/ui/EventManager'
-import { GameStateWatcher } from '@/game/GameStateWatcher'
-import { SoundManager } from '@/audio/SoundManager'
 import { StatsManager } from '@/stats/StatsManager'
 import { SettingsManager } from '@/settings/SettingsManager'
-import { PerformanceMonitor } from '@/performance/PerformanceMonitor'
-import { LevelSelector } from '@/ui/LevelSelector'
-import { StatsModal } from '@/ui/StatsModal'
-import { Difficulty, DIFFICULTY_CONFIGS } from '@/types'
+import { SoundManager } from '@/audio/SoundManager'
+import { GameBootstrapper } from '@/core/GameBootstrapper'
+import { GameUICoordinator } from '@/ui/GameUICoordinator'
+import { GameLifecycleManager } from '@/game/GameLifecycleManager'
+import { Difficulty } from '@/types'
+import { UI_CONSTANTS } from '@/constants/ui'
 
+/**
+ * 簡素化されたGameクラス - 統合ロジックのみを担当
+ * 責任分離により、初期化、UI管理、ライフサイクル管理は専用クラスに委譲
+ */
 export class Game {
-  private gameLogic: GameLogic
-  private renderer: GameRenderer
-  private gameUI!: GameUI
-  private domHandler: DOMHandler
-  private eventManager!: EventManager
-  private gameStateWatcher!: GameStateWatcher
-  private soundManager: SoundManager
-  private statsManager: StatsManager
-  private settingsManager: SettingsManager
-  private performanceMonitor: PerformanceMonitor
-  private levelSelector!: LevelSelector
-  private statsModal!: StatsModal
-  private container: HTMLElement
-  private currentDifficulty: Difficulty
-  private isInitialized = false
+  private gameLogic!: GameLogic
+  private statsManager!: StatsManager
+  private settingsManager!: SettingsManager
+  private soundManager!: SoundManager
+  private uiCoordinator!: GameUICoordinator
+  private lifecycleManager!: GameLifecycleManager
 
   constructor(container: HTMLElement, difficulty: Difficulty = Difficulty.NOVICE) {
-    this.container = container
-    this.currentDifficulty = difficulty
-    const config = DIFFICULTY_CONFIGS[difficulty]
+    this.initializeAsync(container, difficulty)
+  }
+
+  private async initializeAsync(container: HTMLElement, difficulty: Difficulty): Promise<void> {
+    console.log('Game: Starting initialization')
     
-    this.domHandler = new DOMHandler(container)
-    this.settingsManager = new SettingsManager()
-    this.statsManager = new StatsManager()
-    this.soundManager = new SoundManager()
-    this.performanceMonitor = new PerformanceMonitor()
-    this.gameLogic = new GameLogic(config)
-    this.renderer = new GameRenderer(this.gameLogic, this.soundManager)
+    try {
+      // GameBootstrapperを使用して全コンポーネントを初期化
+      const components = await GameBootstrapper.initialize(container, difficulty)
+      
+      // 主要サービスを保存
+      this.gameLogic = components.gameLogic
+      this.statsManager = components.statsManager
+      this.settingsManager = components.settingsManager
+      this.soundManager = components.soundManager
+      
+      // UI管理システムを設定
+      this.uiCoordinator = new GameUICoordinator(components.levelSelector, components.statsModal)
+      
+      // ライフサイクル管理システムを設定
+      this.lifecycleManager = new GameLifecycleManager(
+        components.gameLogic,
+        components.renderer,
+        components.gameUI,
+        components.gameStateWatcher,
+        components.soundManager,
+        components.domHandler,
+        this.uiCoordinator,
+        difficulty
+      )
+      
+      // イベントハンドラーを設定
+      this.setupEventHandlers(components)
+      
+      this.uiCoordinator.markAsInitialized()
+      
+      console.log('Game: Initialization complete')
+      
+      // レベル選択画面を表示
+      setTimeout(() => {
+        this.uiCoordinator.showLevelSelector()
+      }, UI_CONSTANTS.INITIALIZATION.LEVEL_SELECTOR_DELAY)
+      
+    } catch (error) {
+      console.error('Game: Initialization failed:', error)
+      throw error
+    }
+  }
+
+  /**
+   * イベントハンドラーを設定（コールバック関数の接続）
+   */
+  private setupEventHandlers(components: any): void {
+    // LevelSelectorのコールバックを更新
+    components.levelSelector.onLevelSelect = (difficulty: Difficulty) => this.handleLevelSelection(difficulty)
+    components.levelSelector.onClose = () => this.handleLevelSelectorClose()
     
-    this.initializeAsync()
-  }
-
-  private async initializeAsync(): Promise<void> {
-    console.log('Game initializeAsync start')
+    // StatsModalのコールバックを更新
+    components.statsModal.onClose = () => this.handleStatsModalClose()
+    components.statsModal.onRestart = () => this.handleStatsModalRestart()
+    components.statsModal.onLevelSelect = () => this.handleStatsModalLevelSelect()
     
-    await this.initializeRenderer()
-    await this.initializeUI()
-    this.initializeLevelSelector()
-    this.initializeStatsModal()
-    this.initializeEventHandlers()
-    this.initializeGameStateWatcher()
-    this.applySettings()
-    this.finalizeInitialization()
+    // EventManagerのコールバックを更新
+    components.eventManager.restartCallback = () => this.restart()
+    components.eventManager.showLevelSelectorCallback = () => this.showLevelSelector()
     
-    this.isInitialized = true
-    console.log('Game initialization complete')
-    
-    // 少し遅延してからレベル選択画面を表示
-    setTimeout(() => {
-      console.log('🎯 About to show level selector...')
-      this.showLevelSelector()
-    }, 100)
+    // GameStateWatcherのコールバックを更新
+    components.gameStateWatcher.onGameSuccess = () => this.showStatsModal()
   }
 
-  private async initializeRenderer(): Promise<void> {
-    await this.renderer.waitForReady()
-    console.log('Renderer ready')
-    
-    const canvas = this.renderer.getCanvas()
-    console.log('🖼️ Canvas size:', { width: canvas.width, height: canvas.height })
-    console.log('🎬 Stage size:', { width: this.renderer.getApp().screen.width, height: this.renderer.getApp().screen.height })
-    
-    this.domHandler.setupCanvas(canvas)
-  }
-
-  private async initializeUI(): Promise<void> {
-    console.log('Creating GameUI')
-    const stage = this.renderer.getApp().stage
-    this.gameUI = new GameUI(stage, this.gameLogic, this.statsManager, this.settingsManager)
-  }
-
-  private initializeLevelSelector(): void {
-    console.log('Creating LevelSelector')
-    const stage = this.renderer.getApp().stage
-    const app = this.renderer.getApp()
-    this.levelSelector = new LevelSelector(stage, {
-      onLevelSelect: (difficulty: Difficulty) => this.handleLevelSelection(difficulty),
-      onClose: () => this.handleLevelSelectorClose(),
-      canvasWidth: app.screen.width,
-      canvasHeight: app.screen.height
-    })
-  }
-
-  private initializeStatsModal(): void {
-    console.log('Creating StatsModal')
-    const stage = this.renderer.getApp().stage
-    const app = this.renderer.getApp()
-    this.statsModal = new StatsModal(stage, this.statsManager, this.gameLogic, {
-      onClose: () => this.handleStatsModalClose(),
-      onRestart: () => this.handleStatsModalRestart(),
-      onLevelSelect: () => this.handleStatsModalLevelSelect(),
-      canvasWidth: app.screen.width,
-      canvasHeight: app.screen.height
-    })
-  }
-
-  private initializeEventHandlers(): void {
-    this.eventManager = new EventManager(
-      this.gameUI, 
-      () => this.restart(),
-      () => this.showLevelSelector()
-    )
-    this.eventManager.setupKeyboardControls()
-  }
-
-  private initializeGameStateWatcher(): void {
-    this.gameStateWatcher = new GameStateWatcher(
-      this.gameLogic, 
-      this.soundManager, 
-      this.statsManager, 
-      this.renderer,
-      {
-        onGameSuccess: () => this.showStatsModal(),
-        onGameFailed: () => {
-          // 失敗時は特に何もしない（将来的に失敗時の処理があれば追加）
-        }
-      }
-    )
-    this.gameStateWatcher.startWatching()
-  }
-
-  private finalizeInitialization(): void {
-    console.log('Setting up renderer event handlers')
-    this.renderer.setupEventHandlers()
-  }
-
-
-
-  private applySettings(): void {
-    const settings = this.settingsManager.getSettings()
-    
-    this.soundManager.setEnabled(settings.audio.enabled)
-    this.soundManager.setMasterVolume(settings.audio.masterVolume)
-  }
-
-
+  /**
+   * ゲームを再開始（ライフサイクル管理に委譲）
+   */
   public restart(): void {
-    this.gameLogic.reset()
-    this.renderer.updateDisplay()
+    this.lifecycleManager.restart()
   }
 
   private handleLevelSelection(difficulty: Difficulty): void {
     console.log('Level selected:', difficulty)
-    if (difficulty !== this.currentDifficulty) {
+    if (difficulty !== this.lifecycleManager.getCurrentDifficulty()) {
       this.changeDifficulty(difficulty)
     }
   }
 
   private handleLevelSelectorClose(): void {
     console.log('Level selector closed')
-    // レベルが選択されていない場合のデフォルトの動作は特に設定しない
   }
 
   private handleStatsModalClose(): void {
@@ -180,90 +123,61 @@ export class Game {
     this.showLevelSelector()
   }
 
+  /**
+   * レベル選択画面を表示（UIコーディネーターに委譲）
+   */
   public showLevelSelector(): void {
-    if (this.levelSelector && this.isInitialized) {
-      this.levelSelector.show()
-    }
+    this.uiCoordinator.showLevelSelector()
   }
 
+  /**
+   * 統計モーダルを表示（UIコーディネーターに委譲）
+   */
   public showStatsModal(): void {
-    if (this.statsModal && this.isInitialized) {
-      this.statsModal.show()
-    }
+    this.uiCoordinator.showStatsModal()
   }
 
+  /**
+   * 難易度変更（ライフサイクル管理に委譲）
+   */
   public async changeDifficulty(difficulty: Difficulty): Promise<void> {
-    console.log('Changing difficulty to:', difficulty)
-    this.currentDifficulty = difficulty
-    await this.cleanupCurrentGame()
-    await this.initializeWithDifficulty(difficulty)
+    await this.lifecycleManager.changeDifficulty(difficulty)
   }
 
-  private async cleanupCurrentGame(): Promise<void> {
-    if (this.gameStateWatcher) {
-      this.gameStateWatcher.stopWatching()
-    }
-    this.renderer.destroy()
-    this.gameUI.destroy()
-    if (this.levelSelector) {
-      this.levelSelector.destroy()
-    }
-    if (this.statsModal) {
-      this.statsModal.destroy()
-    }
-    this.domHandler.clearContainer()
-  }
-
-  private async initializeWithDifficulty(difficulty: Difficulty): Promise<void> {
-    const config = DIFFICULTY_CONFIGS[difficulty]
-    this.gameLogic = new GameLogic(config)
-    this.renderer = new GameRenderer(this.gameLogic, this.soundManager)
-    
-    await this.initializeRenderer()
-    await this.initializeUI()
-    this.initializeLevelSelector()
-    this.initializeStatsModal()
-    this.initializeGameStateWatcher()
-    this.finalizeInitialization()
-  }
-
+  // === 公開API ===
+  
+  /**
+   * ゲームロジックへのアクセス
+   */
   public getGameLogic(): GameLogic {
     return this.gameLogic
   }
 
+  /**
+   * 統計管理システムへのアクセス
+   */
   public getStatsManager(): StatsManager {
     return this.statsManager
   }
 
+  /**
+   * 設定管理システムへのアクセス
+   */
   public getSettingsManager(): SettingsManager {
     return this.settingsManager
   }
 
+  /**
+   * 音響管理システムへのアクセス
+   */
   public getSoundManager(): SoundManager {
     return this.soundManager
   }
 
+  /**
+   * ゲームアプリケーション全体を破棄（ライフサイクル管理に委譲）
+   */
   public destroy(): void {
-    if (this.gameStateWatcher) {
-      this.gameStateWatcher.stopWatching()
-    }
-    this.renderer.destroy()
-    this.gameUI.destroy()
-    if (this.levelSelector) {
-      this.levelSelector.destroy()
-    }
-    if (this.statsModal) {
-      this.statsModal.destroy()
-    }
-    this.soundManager.destroy()
-    this.performanceMonitor.stop()
-    
-    // パフォーマンス情報表示を削除
-    const perfDiv = document.getElementById('performance-info')
-    if (perfDiv) {
-      perfDiv.remove()
-    }
-    
-    this.container.innerHTML = ''
+    this.lifecycleManager.destroy()
   }
 }
