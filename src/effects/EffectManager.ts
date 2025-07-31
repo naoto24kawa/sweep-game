@@ -179,6 +179,15 @@ export class EffectManager {
     // this.screenShake(15, 800)
   }
 
+  public createGameOverEffect(): void {
+    console.log('💥 Creating game over explosion effect')
+    this.createMassiveExplosion()
+    this.createFailureGlitchOverlay()
+    this.createFailureText()
+    this.createExplosionParticles()
+    this.screenShake(20, 1000)
+  }
+
   private createMatrixRain(): void {
     const characters = '0123456789ABCDEF#※▓▒░'
     const { stageWidth, stageHeight } = this.getStageSize()
@@ -475,6 +484,265 @@ export class EffectManager {
     return stageHeight * 0.75 // 画面下部75%の位置
   }
 
+
+  /**
+   * 大規模爆発エフェクト（ゲーム失敗時）
+   */
+  private createMassiveExplosion(): void {
+    const { stageWidth, stageHeight } = this.getStageSize()
+    const centerX = stageWidth / 2
+    const centerY = stageHeight / 2
+
+    // 中央から広がる大爆発
+    const explosionCount = 8
+    for (let i = 0; i < explosionCount; i++) {
+      setTimeout(() => {
+        const angle = (i / explosionCount) * Math.PI * 2
+        const distance = Math.random() * 150 + 50
+        const x = centerX + Math.cos(angle) * distance
+        const y = centerY + Math.sin(angle) * distance
+        
+        this.createLargeExplosion(x, y)
+      }, i * 200)
+    }
+
+    // 画面全体のフラッシュ
+    this.createExplosionFlash()
+  }
+
+  private createLargeExplosion(x: number, y: number): void {
+    const particleCount = 20
+    const colors = [
+      NEON_COLORS.warning.neonRed,
+      NEON_COLORS.warning.neonOrange,
+      '#ffff00',
+      '#ff6600'
+    ]
+
+    for (let i = 0; i < particleCount; i++) {
+      const particle = new PIXI.Graphics()
+      const color = colors[Math.floor(Math.random() * colors.length)]
+      const size = Math.random() * 8 + 4
+      
+      particle
+        .circle(0, 0, size)
+        .fill({ color, alpha: 0.9 })
+
+      particle.x = x
+      particle.y = y
+
+      const angle = (i / particleCount) * Math.PI * 2 + Math.random() * 0.5
+      const distance = Math.random() * 200 + 100
+      const targetX = particle.x + Math.cos(angle) * distance
+      const targetY = particle.y + Math.sin(angle) * distance
+
+      this.container.addChild(particle)
+
+      this.animationManager.to(particle, { x: targetX, y: targetY }, {
+        duration: 800,
+        easing: (t: number) => 1 - Math.pow(1 - t, 2)
+      })
+
+      this.animationManager.fadeOut(particle, 800, () => {
+        this.container.removeChild(particle)
+        particle.destroy()
+      })
+    }
+
+    // 爆発の中心にショックウェーブ
+    const shockwave = new PIXI.Graphics()
+    shockwave
+      .circle(0, 0, 5)
+      .stroke({ width: 4, color: NEON_COLORS.warning.neonRed, alpha: 0.8 })
+    shockwave.x = x
+    shockwave.y = y
+
+    this.container.addChild(shockwave)
+
+    this.animationManager.to(shockwave, { 'scale.x': 40, 'scale.y': 40 }, {
+      duration: 600,
+      easing: (t: number) => 1 - Math.pow(1 - t, 3)
+    })
+
+    this.animationManager.fadeOut(shockwave, 600, () => {
+      this.container.removeChild(shockwave)
+      shockwave.destroy()
+    })
+  }
+
+  private createExplosionFlash(): void {
+    const { stageWidth, stageHeight } = this.getStageSize()
+    const flash = new PIXI.Graphics()
+    
+    flash.rect(0, 0, stageWidth, stageHeight)
+    flash.fill({ color: 0xff4400, alpha: 0.8 })
+    this.container.addChild(flash)
+
+    // 3回フラッシュ
+    let flashCount = 0
+    const flashInterval = setInterval(() => {
+      flash.alpha = flash.alpha > 0.1 ? 0 : 0.6
+      flashCount++
+      
+      if (flashCount > 6) {
+        clearInterval(flashInterval)
+        this.animationManager.fadeOut(flash, 300, () => {
+          this.container.removeChild(flash)
+          flash.destroy()
+        })
+      }
+    }, 100)
+  }
+
+  private createFailureGlitchOverlay(): void {
+    const overlay = new PIXI.Graphics()
+    const { stageWidth, stageHeight } = this.getStageSize()
+    
+    overlay.rect(0, 0, stageWidth, stageHeight)
+    overlay.fill({ color: 0xff0000, alpha: 0.2 })
+    this.container.addChild(overlay)
+
+    let glitchCount = 0
+    const glitchInterval = setInterval(() => {
+      overlay.alpha = Math.random() * 0.4 + 0.1
+      overlay.tint = Math.random() > 0.5 ? 0xff0000 : 0xff4400
+      
+      glitchCount++
+      if (glitchCount > 30) {
+        clearInterval(glitchInterval)
+        this.animationManager.fadeOut(overlay, 800, () => {
+          if (overlay.parent) {
+            overlay.parent.removeChild(overlay)
+          }
+          if (!overlay.destroyed) {
+            overlay.destroy()
+          }
+        })
+      }
+    }, 80)
+  }
+
+  private createFailureText(): void {
+    const messages = ['SYSTEM FAILURE', 'ACCESS DENIED', 'MISSION FAILED', 'NEURAL LINK SEVERED']
+    const message = messages[Math.floor(Math.random() * messages.length)]
+    
+    const { stageWidth } = this.getStageSize()
+    const fontSize = Math.min(48, Math.max(24, stageWidth / 16))
+
+    const text = new PIXI.Text({
+      text: message,
+      style: {
+        fontFamily: 'monospace',
+        fontSize,
+        fill: NEON_COLORS.warning.neonRed,
+        fontWeight: 'bold',
+        stroke: { color: 0x000000, width: Math.max(1, fontSize / 16) },
+        dropShadow: {
+          color: NEON_COLORS.warning.neonRed,
+          blur: fontSize / 5,
+          distance: 0,
+          alpha: 0.8
+        }
+      }
+    })
+
+    text.anchor.set(0.5)
+    text.x = stageWidth / 2
+    
+    const gridPosition = this.getGridBottomPosition()
+    text.y = gridPosition
+    
+    text.scale.set(0)
+    text.alpha = 0
+
+    this.container.addChild(text)
+
+    this.animationManager.to(text, { 'scale.x': 1.2, 'scale.y': 1.2 }, {
+      duration: 400,
+      easing: (t: number) => 1 - Math.pow(1 - t, 3)
+    })
+
+    this.animationManager.fadeIn(text, 400, () => {
+      setTimeout(() => {
+        this.animationManager.to(text, { 'scale.x': 1, 'scale.y': 1 }, {
+          duration: 200,
+          easing: (t: number) => 1 - Math.pow(1 - t, 2)
+        })
+      }, 100)
+    })
+
+    // 激しいグリッチエフェクト
+    let glitchTextCount = 0
+    const originalY = text.y
+    const textGlitchInterval = setInterval(() => {
+      text.style.fill = Math.random() > 0.3 ? NEON_COLORS.warning.neonRed : NEON_COLORS.warning.neonOrange
+      text.x = stageWidth / 2 + (Math.random() - 0.5) * 30
+      text.y = originalY + (Math.random() - 0.5) * 20
+      
+      glitchTextCount++
+      if (glitchTextCount > 25) {
+        clearInterval(textGlitchInterval)
+        text.x = stageWidth / 2
+        text.y = originalY
+        text.style.fill = NEON_COLORS.warning.neonRed
+        
+        setTimeout(() => {
+          this.animationManager.fadeOut(text, 1000, () => {
+            if (text.parent) {
+              text.parent.removeChild(text)
+            }
+            if (!text.destroyed) {
+              text.destroy()
+            }
+          })
+        }, 1000)
+      }
+    }, 100)
+  }
+
+  private createExplosionParticles(): void {
+    const { stageWidth, stageHeight } = this.getStageSize()
+    const particleCount = 50
+
+    for (let i = 0; i < particleCount; i++) {
+      setTimeout(() => {
+        const particle = new PIXI.Graphics()
+        const colors = [NEON_COLORS.warning.neonRed, NEON_COLORS.warning.neonOrange, '#ffff00']
+        const color = colors[Math.floor(Math.random() * colors.length)]
+        
+        particle
+          .rect(-2, -2, 4, 4)
+          .fill({ color, alpha: 0.8 })
+
+        particle.x = Math.random() * stageWidth
+        particle.y = -20
+        particle.rotation = Math.random() * Math.PI * 2
+
+        this.container.addChild(particle)
+
+        const targetY = stageHeight + 50
+        const targetX = particle.x + (Math.random() - 0.5) * 200
+
+        this.animationManager.to(particle, { 
+          x: targetX, 
+          y: targetY, 
+          rotation: particle.rotation + Math.PI * 4 
+        }, {
+          duration: Math.random() * 2000 + 1500,
+          easing: (t: number) => t
+        })
+
+        this.animationManager.fadeOut(particle, Math.random() * 1000 + 2000, () => {
+          if (particle.parent) {
+            particle.parent.removeChild(particle)
+          }
+          if (!particle.destroyed) {
+            particle.destroy()
+          }
+        })
+      }, Math.random() * 2000)
+    }
+  }
 
   /**
    * バイナリレインエフェクト（0と1の雨）

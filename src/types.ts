@@ -42,6 +42,10 @@ export interface GameStats {
   elapsedTime: number
   flagsUsed: number
   cellsRevealed: number
+  score: number
+  comboCount: number
+  bestCombo: number
+  lastCellRevealTime: number | null
 }
 
 export interface GameResult {
@@ -56,6 +60,17 @@ export interface GameResult {
   gridSize: { width: number; height: number }
   mines: number
   timestamp: number
+  score: number
+  bestCombo: number
+}
+
+export interface ScoreConfig {
+  baseRevealScore: number
+  comboMultiplier: number
+  comboTimeThreshold: number
+  timeBonusMultiplier: number
+  completionBonus: number
+  perfectFlagBonus: number
 }
 
 export const DIFFICULTY_CONFIGS: Record<Difficulty, GameConfig> = {
@@ -63,6 +78,41 @@ export const DIFFICULTY_CONFIGS: Record<Difficulty, GameConfig> = {
   [Difficulty.AGENT]: { width: 16, height: 16, mines: 40, difficulty: Difficulty.AGENT },
   [Difficulty.HACKER]: { width: 30, height: 16, mines: 99, difficulty: Difficulty.HACKER },
   [Difficulty.CUSTOM]: { width: 16, height: 16, mines: 40, difficulty: Difficulty.CUSTOM }
+}
+
+export const SCORE_CONFIGS: Record<Difficulty, ScoreConfig> = {
+  [Difficulty.NOVICE]: {
+    baseRevealScore: 10,
+    comboMultiplier: 1.5,
+    comboTimeThreshold: 2000,
+    timeBonusMultiplier: 0.1,
+    completionBonus: 1000,
+    perfectFlagBonus: 500
+  },
+  [Difficulty.AGENT]: {
+    baseRevealScore: 15,
+    comboMultiplier: 2.0,
+    comboTimeThreshold: 1500,
+    timeBonusMultiplier: 0.15,
+    completionBonus: 2000,
+    perfectFlagBonus: 1000
+  },
+  [Difficulty.HACKER]: {
+    baseRevealScore: 20,
+    comboMultiplier: 2.5,
+    comboTimeThreshold: 1000,
+    timeBonusMultiplier: 0.25,
+    completionBonus: 5000,
+    perfectFlagBonus: 2500
+  },
+  [Difficulty.CUSTOM]: {
+    baseRevealScore: 15,
+    comboMultiplier: 2.0,
+    comboTimeThreshold: 1500,
+    timeBonusMultiplier: 0.15,
+    completionBonus: 2000,
+    perfectFlagBonus: 1000
+  }
 }
 
 export const NEON_COLORS = {

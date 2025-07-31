@@ -8,6 +8,10 @@ export interface PlayerStats {
   totalPlayTime: number
   averageGameTime: number
   bestTimes: Record<Difficulty, number | null>
+  totalScore: number
+  bestScore: Record<Difficulty, number>
+  averageScore: Record<Difficulty, number>
+  bestCombo: Record<Difficulty, number>
   difficultyStats: Record<Difficulty, {
     games: number
     wins: number
@@ -15,6 +19,9 @@ export interface PlayerStats {
     winRate: number
     bestTime: number | null
     averageTime: number
+    bestScore: number
+    averageScore: number
+    bestCombo: number
   }>
   recentGames: GameResult[]
   achievements: string[]
@@ -47,11 +54,30 @@ export class StatsManager {
         [Difficulty.HACKER]: null,
         [Difficulty.CUSTOM]: null
       },
+      totalScore: 0,
+      bestScore: {
+        [Difficulty.NOVICE]: 0,
+        [Difficulty.AGENT]: 0,
+        [Difficulty.HACKER]: 0,
+        [Difficulty.CUSTOM]: 0
+      },
+      averageScore: {
+        [Difficulty.NOVICE]: 0,
+        [Difficulty.AGENT]: 0,
+        [Difficulty.HACKER]: 0,
+        [Difficulty.CUSTOM]: 0
+      },
+      bestCombo: {
+        [Difficulty.NOVICE]: 0,
+        [Difficulty.AGENT]: 0,
+        [Difficulty.HACKER]: 0,
+        [Difficulty.CUSTOM]: 0
+      },
       difficultyStats: {
-        [Difficulty.NOVICE]: { games: 0, wins: 0, losses: 0, winRate: 0, bestTime: null, averageTime: 0 },
-        [Difficulty.AGENT]: { games: 0, wins: 0, losses: 0, winRate: 0, bestTime: null, averageTime: 0 },
-        [Difficulty.HACKER]: { games: 0, wins: 0, losses: 0, winRate: 0, bestTime: null, averageTime: 0 },
-        [Difficulty.CUSTOM]: { games: 0, wins: 0, losses: 0, winRate: 0, bestTime: null, averageTime: 0 }
+        [Difficulty.NOVICE]: { games: 0, wins: 0, losses: 0, winRate: 0, bestTime: null, averageTime: 0, bestScore: 0, averageScore: 0, bestCombo: 0 },
+        [Difficulty.AGENT]: { games: 0, wins: 0, losses: 0, winRate: 0, bestTime: null, averageTime: 0, bestScore: 0, averageScore: 0, bestCombo: 0 },
+        [Difficulty.HACKER]: { games: 0, wins: 0, losses: 0, winRate: 0, bestTime: null, averageTime: 0, bestScore: 0, averageScore: 0, bestCombo: 0 },
+        [Difficulty.CUSTOM]: { games: 0, wins: 0, losses: 0, winRate: 0, bestTime: null, averageTime: 0, bestScore: 0, averageScore: 0, bestCombo: 0 }
       },
       recentGames: [],
       achievements: [],
@@ -86,6 +112,7 @@ export class StatsManager {
   public recordGame(result: GameResult): void {
     this.stats.totalGames++
     this.stats.totalPlayTime += result.duration
+    this.stats.totalScore += result.score
 
     const difficultyStats = this.stats.difficultyStats[result.difficulty]
     difficultyStats.games++
@@ -105,6 +132,22 @@ export class StatsManager {
 
       if (!difficultyStats.bestTime || result.duration < difficultyStats.bestTime) {
         difficultyStats.bestTime = result.duration
+      }
+
+      if (result.score > this.stats.bestScore[result.difficulty]) {
+        this.stats.bestScore[result.difficulty] = result.score
+      }
+
+      if (result.score > difficultyStats.bestScore) {
+        difficultyStats.bestScore = result.score
+      }
+
+      if (result.bestCombo > this.stats.bestCombo[result.difficulty]) {
+        this.stats.bestCombo[result.difficulty] = result.bestCombo
+      }
+
+      if (result.bestCombo > difficultyStats.bestCombo) {
+        difficultyStats.bestCombo = result.bestCombo
       }
 
       this.checkAchievements(result)
@@ -131,17 +174,21 @@ export class StatsManager {
     this.stats.averageGameTime = this.stats.totalGames > 0 ? 
       this.stats.totalPlayTime / this.stats.totalGames : 0
 
-    Object.values(this.stats.difficultyStats).forEach(diffStats => {
+    Object.entries(this.stats.difficultyStats).forEach(([difficulty, diffStats]) => {
       diffStats.winRate = diffStats.games > 0 ? 
         (diffStats.wins / diffStats.games) * 100 : 0
 
       const difficultyGames = this.stats.recentGames.filter(game => 
-        game.difficulty === Object.keys(this.stats.difficultyStats)
-          .find(key => this.stats.difficultyStats[key as Difficulty] === diffStats) as Difficulty
+        game.difficulty === difficulty as Difficulty
       )
       
       diffStats.averageTime = difficultyGames.length > 0 ? 
         difficultyGames.reduce((sum, game) => sum + game.duration, 0) / difficultyGames.length : 0
+
+      diffStats.averageScore = difficultyGames.length > 0 ? 
+        difficultyGames.reduce((sum, game) => sum + game.score, 0) / difficultyGames.length : 0
+
+      this.stats.averageScore[difficulty as Difficulty] = diffStats.averageScore
     })
   }
 
@@ -207,6 +254,31 @@ export class StatsManager {
 
   public getAchievements(): string[] {
     return [...this.stats.achievements]
+  }
+
+  public getBestScore(difficulty?: Difficulty): number {
+    if (difficulty) {
+      return this.stats.bestScore[difficulty]
+    }
+    return Math.max(...Object.values(this.stats.bestScore))
+  }
+
+  public getAverageScore(difficulty?: Difficulty): number {
+    if (difficulty) {
+      return this.stats.averageScore[difficulty]
+    }
+    return this.stats.totalScore / Math.max(this.stats.totalGames, 1)
+  }
+
+  public getBestCombo(difficulty?: Difficulty): number {
+    if (difficulty) {
+      return this.stats.bestCombo[difficulty]
+    }
+    return Math.max(...Object.values(this.stats.bestCombo))
+  }
+
+  public getTotalScore(): number {
+    return this.stats.totalScore
   }
 
   public formatTime(milliseconds: number): string {

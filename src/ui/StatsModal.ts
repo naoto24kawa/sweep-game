@@ -1,6 +1,7 @@
 import * as PIXI from 'pixi.js'
 import { StatsManager } from '@/stats/StatsManager'
 import { GameLogic } from '@/game/GameLogic'
+import { GameState } from '@/types'
 // NEON_COLORSは数値で直接指定するため削除
 
 interface StatsModalOptions {
@@ -33,8 +34,8 @@ export class StatsModal {
     this.setupUI()
     this.stage.addChild(this.container)
     
-    // レンダリング順序を最前面に設定
-    this.container.zIndex = 2000
+    // レンダリング順序を最前面に設定（セレブレーション演出より上）
+    this.container.zIndex = 10000
     this.stage.sortableChildren = true
     
     console.log('📊 StatsModal created')
@@ -95,9 +96,14 @@ export class StatsModal {
       .stroke({ width: 2, color: 0x00ff41, alpha: 0.8 })
     this.modalContainer.addChild(modalBg)
 
-    // タイトル
+    // タイトル（ゲーム結果に応じて変更）
     const titleFontSize = Math.min(28, modalWidth / 14)
-    const title = this.createText('MISSION COMPLETE', titleFontSize, 0x00ff41)
+    const gameState = this.gameLogic.getGameState()
+    const isSuccess = gameState === GameState.SUCCESS
+    const titleText = isSuccess ? 'MISSION COMPLETE' : 'MISSION FAILED'
+    const titleColor = isSuccess ? 0x00ff41 : 0xff0040
+    
+    const title = this.createText(titleText, titleFontSize, titleColor)
     title.anchor.set(0.5)
     title.y = -modalHeight / 2 + Math.min(40, modalHeight * 0.12)
     this.modalContainer.addChild(title)
@@ -305,6 +311,10 @@ export class StatsModal {
   public show(): void {
     console.log('📊 StatsModal.show() called')
     if (!this.isVisible) {
+      // モーダルコンテンツを再作成（ゲーム状態に応じて表示を更新）
+      this.modalContainer.removeChildren()
+      this.createModal()
+      
       this.container.visible = true
       this.isVisible = true
       

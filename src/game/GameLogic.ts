@@ -1,4 +1,4 @@
-import { GameState, GameConfig, Cell, CellState, GameStats } from '@/types'
+import { GameState, GameConfig, Cell, CellState, GameStats, ScoreConfig, SCORE_CONFIGS } from '@/types'
 
 export class GameLogic {
   private config: GameConfig
@@ -6,9 +6,11 @@ export class GameLogic {
   private gameState: GameState
   private stats: GameStats
   private firstClick: boolean
+  private scoreConfig: ScoreConfig
 
   constructor(config: GameConfig) {
     this.config = config
+    this.scoreConfig = SCORE_CONFIGS[config.difficulty]
     this.gameState = GameState.READY
     this.firstClick = true
     this.stats = {
@@ -16,7 +18,11 @@ export class GameLogic {
       endTime: null,
       elapsedTime: 0,
       flagsUsed: 0,
-      cellsRevealed: 0
+      cellsRevealed: 0,
+      score: 0,
+      comboCount: 0,
+      bestCombo: 0,
+      lastCellRevealTime: null
     }
     this.cells = this.initializeCells()
   }
@@ -135,6 +141,17 @@ export class GameLogic {
       return false
     }
 
+    const shouldContinueCombo = cell.adjacentMines === 0
+    if (shouldContinueCombo) {
+      this.updateComboCount()
+    } else {
+      this.stats.comboCount = 0
+      this.stats.lastCellRevealTime = Date.now()
+    }
+
+    const cellScore = this.calculateCellScore(cell.adjacentMines, shouldContinueCombo)
+    this.stats.score += cellScore
+
     if (cell.adjacentMines === 0) {
       this.revealAdjacentCells(x, y)
     }
@@ -162,6 +179,14 @@ export class GameLogic {
           if (adjacentCell.state === CellState.HIDDEN && !adjacentCell.isMine) {
             adjacentCell.state = CellState.REVEALED
             this.stats.cellsRevealed++
+            
+            const shouldContinueCombo = adjacentCell.adjacentMines === 0
+            if (shouldContinueCombo) {
+              this.updateComboCount()
+            }
+
+            const cellScore = this.calculateCellScore(adjacentCell.adjacentMines, shouldContinueCombo)
+            this.stats.score += cellScore
             
             // 隣接セルも空（adjacentMines === 0）なら再帰的に開放
             // これによりマインスイーパー特有の「連鎖開放」が実現される
@@ -210,6 +235,8 @@ export class GameLogic {
       this.gameState = GameState.SUCCESS
       this.stats.endTime = Date.now()
       this.stats.elapsedTime = this.stats.endTime - (this.stats.startTime || 0)
+      
+      this.stats.score = this.calculateFinalScore()
     }
   }
 
@@ -263,8 +290,65 @@ export class GameLogic {
       endTime: null,
       elapsedTime: 0,
       flagsUsed: 0,
-      cellsRevealed: 0
+      cellsRevealed: 0,
+      score: 0,
+      comboCount: 0,
+      bestCombo: 0,
+      lastCellRevealTime: null
     }
     this.cells = this.initializeCells()
+  }
+
+  private calculateCellScore(adjacentMines: number, isCombo: boolean): number {
+    const baseScore = this.scoreConfig.baseRevealScore
+    
+    if (adjacentMines === 0 && isCombo) {
+      const comboBonus = Math.floor(baseScore * this.scoreConfig.comboMultiplier * this.stats.comboCount)
+      return baseScore + comboBonus
+    }
+    
+    return baseScore
+  }
+
+  private updateComboCount(): void {
+    const currentTime = Date.now()
+    const shouldContinueCombo = this.stats.lastCellRevealTime && 
+      (currentTime - this.stats.lastCellRevealTime) < this.scoreConfig.comboTimeThreshold
+
+    if (shouldContinueCombo) {
+      this.stats.comboCount++
+    } else {
+      this.stats.comboCount = 1
+    }
+
+    if (this.stats.comboCount > this.stats.bestCombo) {
+      this.stats.bestCombo = this.stats.comboCount
+    }
+
+    this.stats.lastCellRevealTime = currentTime
+  }
+
+  private calculateFinalScore(): number {
+    let finalScore = this.stats.score
+
+    if (this.gameState === GameState.SUCCESS) {
+      finalScore += this.scoreConfig.completionBonus
+
+      if (this.stats.flagsUsed === this.config.mines) {
+        finalScore += this.scoreConfig.perfectFlagBonus
+      }
+
+      if (this.stats.elapsedTime > 0) {
+        const timeBonusBase = 60000
+        const timeBonus = Math.max(0, timeBonusBase - this.stats.elapsedTime) * this.scoreConfig.timeBonusMultiplier
+        finalScore += Math.floor(timeBonus)
+      }
+    }
+
+    return Math.floor(finalScore)
+  }
+
+  public getCurrentScore(): number {
+    return this.calculateFinalScore()
   }
 }

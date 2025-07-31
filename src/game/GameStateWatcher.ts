@@ -51,6 +51,13 @@ export class GameStateWatcher {
     }
   }
 
+  /**
+   * コールバック関数を動的に更新
+   */
+  updateCallbacks(callbacks: Partial<GameStateWatcherCallbacks>): void {
+    this.callbacks = { ...this.callbacks, ...callbacks }
+  }
+
   private handleGameStateChange(oldState: GameState, newState: GameState): void {
     switch (newState) {
       case GameState.ACTIVE:
@@ -76,9 +83,15 @@ export class GameStateWatcher {
       case GameState.FAILED:
         this.soundManager.play('EXPLOSION' as SoundType)
         this.recordGameResult(false)
-        if (this.callbacks.onGameFailed) {
-          this.callbacks.onGameFailed()
+        if (this.renderer) {
+          this.renderer.playGameOverEffect()
         }
+        // エフェクト完了後にStatsModalを表示
+        setTimeout(() => {
+          if (this.callbacks.onGameFailed) {
+            this.callbacks.onGameFailed()
+          }
+        }, 2000) // 2秒後に表示（エフェクトが落ち着いてから）
         break
     }
   }
@@ -99,7 +112,9 @@ export class GameStateWatcher {
         flagsUsed: stats.flagsUsed,
         gridSize: { width: config.width, height: config.height },
         mines: config.mines,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        score: stats.score,
+        bestCombo: stats.bestCombo
       })
     }
   }

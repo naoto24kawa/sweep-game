@@ -88,7 +88,10 @@ export class Game {
     components.eventManager.showLevelSelectorCallback = () => this.showLevelSelector()
     
     // GameStateWatcherのコールバックを更新
-    components.gameStateWatcher.onGameSuccess = () => this.showStatsModal()
+    components.gameStateWatcher.updateCallbacks({
+      onGameSuccess: () => this.showStatsModal(),
+      onGameFailed: () => this.showStatsModal()
+    })
   }
 
   /**

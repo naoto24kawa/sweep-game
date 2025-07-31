@@ -144,6 +144,13 @@ export class GameRenderer {
   }
 
   /**
+   * ゲームオーバー演出を実行
+   */
+  public playGameOverEffect(): void {
+    this.pixiAppManager.getEffectManager().createGameOverEffect()
+  }
+
+  /**
    * リソースを破棄
    */
   public destroy(): void {
