@@ -4,6 +4,11 @@ import type { SoundManager, SoundType } from '@/audio/SoundManager'
 import type { StatsManager } from '@/stats/StatsManager'
 import type { GameRenderer } from '@/renderer/GameRenderer'
 
+interface GameStateWatcherCallbacks {
+  onGameSuccess?: () => void
+  onGameFailed?: () => void
+}
+
 export class GameStateWatcher {
   private gameLogic: GameLogic
   private soundManager: SoundManager
@@ -11,17 +16,20 @@ export class GameStateWatcher {
   private renderer: GameRenderer | null
   private lastGameState: GameState
   private intervalId: number | null = null
+  private callbacks: GameStateWatcherCallbacks
 
   constructor(
     gameLogic: GameLogic,
     soundManager: SoundManager,
     statsManager: StatsManager,
-    renderer?: GameRenderer
+    renderer?: GameRenderer,
+    callbacks?: GameStateWatcherCallbacks
   ) {
     this.gameLogic = gameLogic
     this.soundManager = soundManager
     this.statsManager = statsManager
     this.renderer = renderer || null
+    this.callbacks = callbacks || {}
     this.lastGameState = gameLogic.getGameState()
   }
 
@@ -57,11 +65,20 @@ export class GameStateWatcher {
         if (this.renderer) {
           this.renderer.playVictoryEffect()
         }
+        // エフェクト完了後にStatsModalを表示
+        setTimeout(() => {
+          if (this.callbacks.onGameSuccess) {
+            this.callbacks.onGameSuccess()
+          }
+        }, 2000) // 2秒後に表示（エフェクトが落ち着いてから）
         break
 
       case GameState.FAILED:
         this.soundManager.play('EXPLOSION' as SoundType)
         this.recordGameResult(false)
+        if (this.callbacks.onGameFailed) {
+          this.callbacks.onGameFailed()
+        }
         break
     }
   }

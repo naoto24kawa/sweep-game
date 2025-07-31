@@ -1,0 +1,349 @@
+import * as PIXI from 'pixi.js'
+import { StatsManager } from '@/stats/StatsManager'
+import { GameLogic } from '@/game/GameLogic'
+// NEON_COLORSは数値で直接指定するため削除
+
+interface StatsModalOptions {
+  onClose: () => void
+  onRestart: () => void
+  onLevelSelect: () => void
+  canvasWidth?: number
+  canvasHeight?: number
+}
+
+/**
+ * ゲームクリア後のstats表示モーダル
+ */
+export class StatsModal {
+  private container: PIXI.Container
+  private overlay: PIXI.Graphics
+  private modalContainer: PIXI.Container
+  private isVisible = false
+
+  constructor(
+    private stage: PIXI.Container,
+    private statsManager: StatsManager,
+    private gameLogic: GameLogic,
+    private options: StatsModalOptions
+  ) {
+    this.container = new PIXI.Container()
+    this.overlay = new PIXI.Graphics()
+    this.modalContainer = new PIXI.Container()
+    
+    this.setupUI()
+    this.stage.addChild(this.container)
+    
+    // レンダリング順序を最前面に設定
+    this.container.zIndex = 2000
+    this.stage.sortableChildren = true
+    
+    console.log('📊 StatsModal created')
+  }
+
+  private setupUI(): void {
+    // キャンバスサイズを取得
+    const canvasWidth = this.options.canvasWidth || 800
+    const canvasHeight = this.options.canvasHeight || 600
+    
+    console.log('📐 Canvas size for StatsModal:', { canvasWidth, canvasHeight })
+
+    // オーバーレイ（背景）
+    this.overlay
+      .rect(0, 0, canvasWidth, canvasHeight)
+      .fill({ color: 0x000000, alpha: 0.8 })
+    this.overlay.eventMode = 'static'
+    this.overlay.on('pointerdown', (e) => {
+      e.stopPropagation()
+      // 背景クリックでは閉じない（意図しない操作を防ぐため）
+    })
+    this.container.addChild(this.overlay)
+
+    // モーダルコンテナ
+    this.modalContainer.x = canvasWidth / 2
+    this.modalContainer.y = canvasHeight / 2
+    this.container.addChild(this.modalContainer)
+
+    this.createModal()
+    this.container.visible = false
+  }
+
+  private createModal(): void {
+    // キャンバスサイズに基づいてモーダルサイズを調整
+    const canvasWidth = this.options.canvasWidth || 800
+    const canvasHeight = this.options.canvasHeight || 600
+    
+    // キャンバスサイズの85%を最大サイズとして設定
+    const maxModalWidth = Math.min(500, canvasWidth * 0.85)
+    const maxModalHeight = Math.min(400, canvasHeight * 0.85)
+    
+    // 最小サイズを保証
+    const modalWidth = Math.max(300, maxModalWidth)
+    const modalHeight = Math.max(250, maxModalHeight)
+    
+    console.log('📐 Stats modal size calculated:', { 
+      modalWidth, 
+      modalHeight, 
+      canvasWidth, 
+      canvasHeight 
+    })
+    
+    // モーダル背景
+    const modalBg = new PIXI.Graphics()
+    modalBg
+      .roundRect(-modalWidth / 2, -modalHeight / 2, modalWidth, modalHeight, 12)
+      .fill({ color: 0x0d0d0d, alpha: 0.95 })
+      .stroke({ width: 2, color: 0x00ff41, alpha: 0.8 })
+    this.modalContainer.addChild(modalBg)
+
+    // タイトル
+    const titleFontSize = Math.min(28, modalWidth / 14)
+    const title = this.createText('MISSION COMPLETE', titleFontSize, 0x00ff41)
+    title.anchor.set(0.5)
+    title.y = -modalHeight / 2 + Math.min(40, modalHeight * 0.12)
+    this.modalContainer.addChild(title)
+
+    // stats情報を作成
+    this.createStatsContent(modalWidth, modalHeight)
+
+    // ボタンを作成
+    this.createButtons(modalWidth, modalHeight)
+  }
+
+  private createStatsContent(modalWidth: number, modalHeight: number): void {
+    const stats = this.statsManager.getStats()
+    const config = this.gameLogic.getConfig()
+    const gameStats = this.gameLogic.getStats()
+    
+    const contentY = -modalHeight / 4
+    const fontSize = Math.min(14, modalWidth / 28)
+    const lineHeight = fontSize + 4
+
+    // ゲーム結果
+    const resultText = this.createText(
+      `Difficulty: ${config.difficulty} | Time: ${this.formatTime(gameStats.elapsedTime)}`,
+      fontSize,
+      0xffffff
+    )
+    resultText.anchor.set(0.5)
+    resultText.y = contentY
+    this.modalContainer.addChild(resultText)
+
+    // 統計情報（2列レイアウト）
+    const leftColumn = -modalWidth / 4
+    const rightColumn = modalWidth / 4
+    const currentY = contentY + lineHeight * 2
+
+    // 左列
+    const gamesText = this.createText(`Games: ${stats.totalGames}`, fontSize, 0xcccccc)
+    gamesText.anchor.set(0.5)
+    gamesText.x = leftColumn
+    gamesText.y = currentY
+    this.modalContainer.addChild(gamesText)
+
+    const winsText = this.createText(`Wins: ${stats.totalWins}`, fontSize, 0xcccccc)
+    winsText.anchor.set(0.5)
+    winsText.x = leftColumn
+    winsText.y = currentY + lineHeight
+    this.modalContainer.addChild(winsText)
+
+    const winRateText = this.createText(`Win Rate: ${stats.winRate.toFixed(1)}%`, fontSize, 0xcccccc)
+    winRateText.anchor.set(0.5)
+    winRateText.x = leftColumn
+    winRateText.y = currentY + lineHeight * 2
+    this.modalContainer.addChild(winRateText)
+
+    // 右列
+    const streakText = this.createText(`Streak: ${stats.streaks.current}`, fontSize, 0xcccccc)
+    streakText.anchor.set(0.5)
+    streakText.x = rightColumn
+    streakText.y = currentY
+    this.modalContainer.addChild(streakText)
+
+    const bestStreakText = this.createText(`Best: ${stats.streaks.best}`, fontSize, 0xcccccc)
+    bestStreakText.anchor.set(0.5)
+    bestStreakText.x = rightColumn
+    bestStreakText.y = currentY + lineHeight
+    this.modalContainer.addChild(bestStreakText)
+
+    const bestTimeText = this.createText(
+      `Best Time: ${stats.bestTimes[config.difficulty] ? 
+        this.statsManager.formatTime(stats.bestTimes[config.difficulty]!) : 'N/A'}`,
+      fontSize,
+      0xcccccc
+    )
+    bestTimeText.anchor.set(0.5)
+    bestTimeText.x = rightColumn
+    bestTimeText.y = currentY + lineHeight * 2
+    this.modalContainer.addChild(bestTimeText)
+
+    // 実績情報（あれば）
+    if (stats.achievements.length > 0) {
+      const achievementText = this.createText('Recent Achievement:', fontSize - 2, 0xff9500)
+      achievementText.anchor.set(0.5)
+      achievementText.y = currentY + lineHeight * 4
+      this.modalContainer.addChild(achievementText)
+
+      const recentAchievement = this.createText(
+        this.statsManager.getAchievementName(stats.achievements[stats.achievements.length - 1]),
+        fontSize - 2,
+        0xff9500
+      )
+      recentAchievement.anchor.set(0.5)
+      recentAchievement.y = currentY + lineHeight * 5
+      this.modalContainer.addChild(recentAchievement)
+    }
+  }
+
+  private createButtons(modalWidth: number, modalHeight: number): void {
+    const buttonY = modalHeight / 2 - 60
+    const buttonWidth = Math.min(80, modalWidth / 6)
+    const buttonHeight = Math.min(35, modalHeight / 12)
+    const buttonSpacing = Math.min(100, modalWidth / 5)
+    
+    // 再開ボタン
+    const restartButton = this.createButton('RESTART', buttonWidth, buttonHeight, 0x00ff41, () => {
+      this.hide()
+      this.options.onRestart()
+    })
+    restartButton.x = -buttonSpacing
+    restartButton.y = buttonY
+    this.modalContainer.addChild(restartButton)
+
+    // レベル選択ボタン
+    const levelButton = this.createButton('LEVELS', buttonWidth, buttonHeight, 0x00ffff, () => {
+      this.hide()
+      this.options.onLevelSelect()
+    })
+    levelButton.x = 0
+    levelButton.y = buttonY
+    this.modalContainer.addChild(levelButton)
+
+    // 閉じるボタン
+    const closeButton = this.createButton('CLOSE', buttonWidth, buttonHeight, 0xff0040, () => {
+      this.hide()
+      this.options.onClose()
+    })
+    closeButton.x = buttonSpacing
+    closeButton.y = buttonY
+    this.modalContainer.addChild(closeButton)
+  }
+
+  private createButton(
+    text: string, 
+    width: number, 
+    height: number, 
+    color: number, 
+    onClick: () => void
+  ): PIXI.Container {
+    const buttonContainer = new PIXI.Container()
+
+    const buttonBg = new PIXI.Graphics()
+    buttonBg
+      .roundRect(-width / 2, -height / 2, width, height, 6)
+      .fill({ color: 0x1a1a1a, alpha: 0.8 })
+      .stroke({ width: 2, color, alpha: 0.6 })
+    
+    buttonBg.eventMode = 'static'
+    buttonBg.cursor = 'pointer'
+    
+    // ホバーエフェクト
+    buttonBg.on('pointerover', () => {
+      buttonBg.clear()
+      buttonBg
+        .roundRect(-width / 2, -height / 2, width, height, 6)
+        .fill({ color, alpha: 0.2 })
+        .stroke({ width: 2, color, alpha: 1.0 })
+    })
+    
+    buttonBg.on('pointerout', () => {
+      buttonBg.clear()
+      buttonBg
+        .roundRect(-width / 2, -height / 2, width, height, 6)
+        .fill({ color: 0x1a1a1a, alpha: 0.8 })
+        .stroke({ width: 2, color, alpha: 0.6 })
+    })
+
+    buttonBg.on('pointerdown', onClick)
+
+    buttonContainer.addChild(buttonBg)
+
+    // ボタンテキスト
+    const fontSize = Math.min(12, height / 2.5)
+    const buttonText = this.createText(text, fontSize, color)
+    buttonText.anchor.set(0.5)
+    buttonContainer.addChild(buttonText)
+
+    return buttonContainer
+  }
+
+  private createText(text: string, fontSize: number, color?: number): PIXI.Text {
+    return new PIXI.Text({
+      text,
+      style: {
+        fontFamily: 'Courier New, monospace',
+        fontSize,
+        fill: color || 0xffffff,
+        fontWeight: 'bold',
+        dropShadow: {
+          color: color || 0x00ffff,
+          distance: 1,
+          blur: 2,
+          alpha: 0.6,
+          angle: Math.PI / 4
+        }
+      }
+    })
+  }
+
+  private formatTime(milliseconds: number): string {
+    const seconds = Math.floor(milliseconds / 1000)
+    const minutes = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+  }
+
+  public show(): void {
+    console.log('📊 StatsModal.show() called')
+    if (!this.isVisible) {
+      this.container.visible = true
+      this.isVisible = true
+      
+      // アニメーション
+      this.modalContainer.scale.set(0.8)
+      this.modalContainer.alpha = 0
+      
+      const fadeIn = () => {
+        this.modalContainer.alpha += 0.1
+        this.modalContainer.scale.x += 0.02
+        this.modalContainer.scale.y += 0.02
+        
+        if (this.modalContainer.alpha < 1) {
+          requestAnimationFrame(fadeIn)
+        } else {
+          this.modalContainer.alpha = 1
+          this.modalContainer.scale.set(1)
+        }
+      }
+      fadeIn()
+    }
+  }
+
+  public hide(): void {
+    if (this.isVisible) {
+      this.container.visible = false
+      this.isVisible = false
+      this.options.onClose()
+    }
+  }
+
+  public isShowing(): boolean {
+    return this.isVisible
+  }
+
+  public destroy(): void {
+    if (this.container.parent) {
+      this.container.parent.removeChild(this.container)
+    }
+    this.container.destroy({ children: true })
+  }
+}

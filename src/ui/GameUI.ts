@@ -9,6 +9,7 @@ export class GameUI {
   private gameLogic: GameLogic
   private statsManager: StatsManager
   private settingsManager: SettingsManager
+  private stage: PIXI.Container
   
   private timerText: PIXI.Text
   private mineCountText: PIXI.Text
@@ -29,6 +30,7 @@ export class GameUI {
     settingsManager: SettingsManager
   ) {
     this.container = new PIXI.Container()
+    this.stage = stage
     this.gameLogic = gameLogic
     this.statsManager = statsManager
     this.settingsManager = settingsManager
@@ -67,19 +69,30 @@ export class GameUI {
     console.log('🎮 Setting up GameUI')
     const headerHeight = 80
     const config = this.gameLogic.getConfig()
-    const gameWidth = config.width * 34 - 2
+    const effectiveWidth = this.getEffectiveUIWidth()
     
     console.log('⚙️ Game config:', config)
-    console.log('📏 Calculated game width:', gameWidth)
+    console.log('📏 Effective UI width:', effectiveWidth)
     
-    // コンテナを画面上部に配置（負の値を使わない）
-    this.container.y = 20
+    // ヘッダーコンテナを配置
+    const app = (this.stage as any).app || (this.stage as any)._app
+    const canvasWidth = app ? app.screen.width : window.innerWidth
     
-    console.log('📦 Container position:', { x: this.container.x, y: this.container.y })
+    this.container.x = (canvasWidth - effectiveWidth) / 2
+    // グリッドの上部に配置
+    const gridTopPosition = this.getGridTopPosition()
+    this.container.y = Math.max(20, gridTopPosition - 100) // グリッドの上に100px確保
+    
+    console.log('📦 Container position:', { 
+      x: this.container.x, 
+      y: this.container.y, 
+      canvasWidth, 
+      effectiveWidth 
+    })
 
     const headerBg = new PIXI.Graphics()
     headerBg
-      .roundRect(0, 0, gameWidth, headerHeight, 8)
+      .roundRect(0, 0, effectiveWidth, headerHeight, 8)
       .fill({ color: NEON_COLORS.primary.darkGray, alpha: 0.9 })
       .stroke({ width: 2, color: NEON_COLORS.accent.neonBlue, alpha: 0.5 })
     this.container.addChild(headerBg)
@@ -93,21 +106,22 @@ export class GameUI {
     mineIcon.y = this.mineCountText.y + 5
     this.container.addChild(mineIcon)
 
-    this.timerText.x = gameWidth - 100
+    // タイマーを右端に配置
+    this.timerText.x = effectiveWidth - this.timerText.width - 20
     this.timerText.y = 20
     this.container.addChild(this.timerText)
 
-    this.statusText.x = gameWidth / 2 - this.statusText.width / 2
-    this.statusText.y = 15
+    this.statusText.x = effectiveWidth / 2 - this.statusText.width / 2
+    this.statusText.y = 15  // 元の位置に戻す
     this.container.addChild(this.statusText)
 
     const difficultyText = this.createText(config.difficulty, 16)
     difficultyText.style.fill = NEON_COLORS.accent.neonGreen
-    difficultyText.x = gameWidth / 2 - difficultyText.width / 2
-    difficultyText.y = 45
+    difficultyText.x = effectiveWidth / 2 - difficultyText.width / 2
+    difficultyText.y = 45  // statusTextの下に配置
     this.container.addChild(difficultyText)
 
-    this.setupStatsPanel(gameWidth)
+    this.setupStatsPanel(effectiveWidth)
   }
 
   private createMineIcon(): PIXI.Graphics {
@@ -233,7 +247,7 @@ export class GameUI {
       this.statsPanel.addChild(recentAchievement)
     }
 
-    this.statsPanel.visible = true  // デフォルトで表示
+    this.statsPanel.visible = false  // デフォルトで非表示（モーダルで表示するため）
     this.container.addChild(this.statsPanel)
     
     console.log('✅ Stats panel setup complete')
@@ -291,18 +305,104 @@ export class GameUI {
     if (settings.gameplay.showTimer) {
       this.timerText.text = this.formatTime(Math.floor(this.currentTime / 1000))
       this.timerText.visible = true
+      // タイマーテキストの位置を再調整（テキスト幅が変わった場合に対応）
+      this.updateTimerPosition()
     } else {
       this.timerText.visible = false
     }
 
     this.centerStatusText()
+    this.updateHeaderPosition()
     this.updateStatsPanel()
   }
 
   private centerStatusText(): void {
+    const effectiveWidth = this.getEffectiveUIWidth()
+    this.statusText.x = effectiveWidth / 2 - this.statusText.width / 2
+  }
+
+  private updateTimerPosition(): void {
+    const effectiveWidth = this.getEffectiveUIWidth()
+    // タイマーを右端に配置
+    this.timerText.x = effectiveWidth - this.timerText.width - 20
+  }
+
+  private updateHeaderPosition(): void {
+    const effectiveWidth = this.getEffectiveUIWidth()
+    const app = (this.stage as any).app || (this.stage as any)._app
+    const canvasWidth = app ? app.screen.width : window.innerWidth
+    
+    // ヘッダーコンテナをグリッドの上部に配置
+    this.container.x = (canvasWidth - effectiveWidth) / 2
+    const gridTopPosition = this.getGridTopPosition()
+    this.container.y = Math.max(20, gridTopPosition - 100)
+  }
+
+  /**
+   * UI配置に使用する有効幅を取得
+   * モバイルではキャンバス幅、PCではブロック幅を使用
+   */
+  private getEffectiveUIWidth(): number {
+    // PIXIアプリケーションから実際のキャンバスサイズを取得
+    const app = (this.stage as any).app || (this.stage as any)._app
+    if (app && app.screen) {
+      const canvasWidth = app.screen.width
+      // モバイル判定（簡易版）
+      const isMobile = canvasWidth >= window.innerWidth * 0.9
+      
+      if (isMobile) {
+        // モバイルではキャンバス幅から適切なマージンを引いた値を使用
+        return Math.min(canvasWidth - 40, this.getLogicalGameWidth())
+      }
+    }
+    
+    // PCまたはフォールバック: 論理的なゲーム幅を使用
+    return this.getLogicalGameWidth()
+  }
+
+  /**
+   * グリッドの上部位置を取得
+   */
+  private getGridTopPosition(): number {
+    // stageからグリッドコンテナを探す
+    const findGridContainer = (container: PIXI.Container): PIXI.Container | null => {
+      for (const child of container.children) {
+        if (child instanceof PIXI.Container) {
+          // グリッドコンテナは通常多数の子要素（セル）を持つ
+          if (child.children.length > 10) {
+            // 子要素の最初の要素にlabelプロパティがあるかチェック（セルの特徴）
+            const firstChild = child.children[0] as any
+            if (firstChild && firstChild.label && typeof firstChild.label === 'string') {
+              return child
+            }
+          }
+          // 再帰的に探索
+          const found = findGridContainer(child)
+          if (found) return found
+        }
+      }
+      return null
+    }
+
+    const gridContainer = findGridContainer(this.stage)
+    if (gridContainer) {
+      const bounds = gridContainer.getBounds()
+      console.log('📍 Grid top position found:', bounds.y)
+      return bounds.y
+    }
+    
+    // グリッドが見つからない場合のフォールバック
+    const app = (this.stage as any).app || (this.stage as any)._app
+    const stageHeight = app ? app.screen.height : window.innerHeight
+    return stageHeight * 0.3 // 画面上部30%の位置
+  }
+
+  /**
+   * 論理的なゲーム幅を取得（ブロック配置に基づく）
+   */
+  private getLogicalGameWidth(): number {
     const config = this.gameLogic.getConfig()
-    const gameWidth = config.width * 34 - 2
-    this.statusText.x = gameWidth / 2 - this.statusText.width / 2
+    return config.width * 34 - 2
   }
 
   private updateStatsPanel(): void {

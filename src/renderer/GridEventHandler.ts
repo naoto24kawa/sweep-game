@@ -13,10 +13,15 @@ export class GridEventHandler {
   private readonly cellSize = RENDER_CONSTANTS.CELL.SIZE
   private readonly cellSpacing = RENDER_CONSTANTS.CELL.SPACING
   private readonly LONG_PRESS_DURATION = 500 // 長押し判定時間（ミリ秒）
+  private readonly DOUBLE_CLICK_DURATION = 300 // ダブルクリック判定時間（ミリ秒）
 
   private longPressTimer: number | null = null
   private isLongPress = false
   private longPressTarget: CellClickInfo | null = null
+  
+  private lastClickTime = 0
+  private lastClickTarget: CellClickInfo | null = null
+  private doubleClickTimer: number | null = null
 
   constructor(
     private gameLogic: GameLogic,
@@ -26,7 +31,7 @@ export class GridEventHandler {
     private onDisplayUpdate: () => void
   ) {}
 
-  private gridOffset = { x: 0, y: 120 }  // グリッドコンテナのオフセット
+  private gridOffset = { x: 0, y: 0 }  // グリッドコンテナのオフセット
 
   /**
    * グリッドコンテナにイベントハンドラーを設定
@@ -34,8 +39,7 @@ export class GridEventHandler {
    */
   public setupEventHandlers(gridContainer: PIXI.Container): void {
     // グリッドの実際の位置を記録
-    this.gridOffset.x = gridContainer.x
-    this.gridOffset.y = gridContainer.y
+    this.updateGridOffset(gridContainer)
     
     console.log('🎯 GridEventHandler: Grid offset recorded:', this.gridOffset)
     
@@ -107,9 +111,28 @@ export class GridEventHandler {
   private handlePointerUp(event: PIXI.FederatedPointerEvent): void {
     this.clearLongPressTimer()
 
-    // 長押しでない場合のみ通常のクリック処理
+    // 長押しでない場合のみクリック処理を行う
     if (!this.isLongPress && this.longPressTarget) {
-      this.handleNormalClick(event, this.longPressTarget)
+      const currentTime = Date.now()
+      const cellInfo = this.longPressTarget
+      
+      // ダブルクリック判定
+      if (this.lastClickTarget && 
+          this.lastClickTarget.coordinates.x === cellInfo.coordinates.x &&
+          this.lastClickTarget.coordinates.y === cellInfo.coordinates.y &&
+          currentTime - this.lastClickTime < this.DOUBLE_CLICK_DURATION) {
+        
+        // ダブルクリック: フラッグ切り替え
+        this.handleDoubleClick(cellInfo)
+        this.clearDoubleClickTimer()
+        this.lastClickTarget = null
+        this.lastClickTime = 0
+      } else {
+        // 通常クリック: 遅延実行でダブルクリックを待つ
+        this.scheduleNormalClick(event, cellInfo)
+        this.lastClickTarget = cellInfo
+        this.lastClickTime = currentTime
+      }
     }
 
     this.longPressTarget = null
@@ -121,7 +144,9 @@ export class GridEventHandler {
    */
   private handlePointerCancel(_event: PIXI.FederatedPointerEvent): void {
     this.clearLongPressTimer()
+    this.clearDoubleClickTimer()
     this.longPressTarget = null
+    this.lastClickTarget = null
   }
 
   /**
@@ -132,6 +157,42 @@ export class GridEventHandler {
       clearTimeout(this.longPressTimer)
       this.longPressTimer = null
     }
+  }
+
+  /**
+   * ダブルクリックタイマーをクリア
+   */
+  private clearDoubleClickTimer(): void {
+    if (this.doubleClickTimer) {
+      clearTimeout(this.doubleClickTimer)
+      this.doubleClickTimer = null
+    }
+  }
+
+  /**
+   * 通常クリックを遅延実行（ダブルクリック待ち）
+   * @param event PIXIポインターイベント
+   * @param cellInfo セル情報
+   */
+  private scheduleNormalClick(event: PIXI.FederatedPointerEvent, cellInfo: CellClickInfo): void {
+    this.clearDoubleClickTimer()
+    this.doubleClickTimer = window.setTimeout(() => {
+      this.handleNormalClick(event, cellInfo)
+      this.lastClickTarget = null
+      this.lastClickTime = 0
+    }, this.DOUBLE_CLICK_DURATION)
+  }
+
+  /**
+   * ダブルクリック処理（フラッグ切り替え）
+   * @param cellInfo セル情報
+   */
+  private handleDoubleClick(cellInfo: CellClickInfo): void {
+    const actionResult = this.processUserAction(2, cellInfo) // 右クリック相当として処理
+    if (actionResult.shouldPlayEffect) {
+      this.playInteractionEffects(actionResult, cellInfo)
+    }
+    this.onDisplayUpdate()
   }
 
   /**
@@ -291,5 +352,15 @@ export class GridEventHandler {
   private handleCellOut(_event: PIXI.FederatedPointerEvent): void {
     // ホバーエフェクトを完全に無効化
     return
+  }
+
+  /**
+   * グリッドオフセットを更新
+   * @param gridContainer PIXIグリッドコンテナ
+   */
+  public updateGridOffset(gridContainer: PIXI.Container): void {
+    this.gridOffset.x = gridContainer.x
+    this.gridOffset.y = gridContainer.y
+    console.log('🔄 GridEventHandler: Grid offset updated:', this.gridOffset)
   }
 }

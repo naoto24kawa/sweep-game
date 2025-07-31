@@ -5,18 +5,24 @@ import { NEON_COLORS } from '@/types'
 export class EffectManager {
   private container: PIXI.Container
   private animationManager: AnimationManager
+  private stage: PIXI.Container
 
   constructor(stage: PIXI.Container, animationManager: AnimationManager) {
     this.container = new PIXI.Container()
     this.animationManager = animationManager
+    this.stage = stage
+    
+    // エフェクトコンテナを最前面に設定
+    this.container.zIndex = 9999
     stage.addChild(this.container)
+    stage.sortableChildren = true
   }
 
   public createGlowEffect(x: number, y: number, color: number = 0x00ffff, size: number = 32): void {
     const glow = new PIXI.Graphics()
     glow
-      .circle(0, 0, size)
-      .fill({ color, alpha: 0.3 })
+      .circle(0, 0, size / 2) // サイズを半分に
+      .fill({ color, alpha: 0.2 }) // 透明度を下げる
     
     glow.x = x + size / 2
     glow.y = y + size / 2
@@ -24,26 +30,25 @@ export class EffectManager {
     
     this.container.addChild(glow)
 
-    this.animationManager.fadeIn(glow, 200, () => {
-      this.animationManager.fadeOut(glow, 300, () => {
+    this.animationManager.fadeIn(glow, 150, () => {
+      this.animationManager.fadeOut(glow, 200, () => {
         this.container.removeChild(glow)
         glow.destroy()
       })
     })
 
-    this.animationManager.to(glow, { 'scale.x': 2, 'scale.y': 2 }, {
-      duration: 500,
+    this.animationManager.to(glow, { 'scale.x': 1.3, 'scale.y': 1.3 }, { // スケールを控えめに
+      duration: 350,
       easing: (t: number) => 1 - Math.pow(1 - t, 3)
     })
   }
 
   public createExplosionEffect(x: number, y: number, size: number = 32): void {
-    const particleCount = 12
+    const particleCount = 6 // パーティクル数を半分に
     const colors = [
       NEON_COLORS.warning.neonRed,
       NEON_COLORS.warning.neonOrange,
-      '#ffff00',
-      '#ffffff'
+      '#ffff00'
     ]
 
     for (let i = 0; i < particleCount; i++) {
@@ -51,45 +56,46 @@ export class EffectManager {
       const color = colors[Math.floor(Math.random() * colors.length)]
       
       particle
-        .circle(0, 0, Math.random() * 3 + 2)
-        .fill({ color })
+        .circle(0, 0, Math.random() * 2 + 1) // サイズを小さく
+        .fill({ color, alpha: 0.7 }) // 透明度を追加
 
       particle.x = x + size / 2
       particle.y = y + size / 2
 
       const angle = (i / particleCount) * Math.PI * 2
-      const distance = Math.random() * 50 + 30
+      const distance = Math.random() * 25 + 15 // 距離を短く
       const targetX = particle.x + Math.cos(angle) * distance
       const targetY = particle.y + Math.sin(angle) * distance
 
       this.container.addChild(particle)
 
       this.animationManager.to(particle, { x: targetX, y: targetY }, {
-        duration: 600,
+        duration: 400, // 時間を短く
         easing: (t: number) => 1 - Math.pow(1 - t, 2)
       })
 
-      this.animationManager.fadeOut(particle, 600, () => {
+      this.animationManager.fadeOut(particle, 400, () => {
         this.container.removeChild(particle)
         particle.destroy()
       })
     }
 
+    // ショックウェーブを控えめに
     const shockwave = new PIXI.Graphics()
     shockwave
       .circle(0, 0, 1)
-      .stroke({ width: 3, color: NEON_COLORS.warning.neonRed, alpha: 0.8 })
+      .stroke({ width: 2, color: NEON_COLORS.warning.neonRed, alpha: 0.5 }) // 透明度を下げる
     shockwave.x = x + size / 2
     shockwave.y = y + size / 2
 
     this.container.addChild(shockwave)
 
-    this.animationManager.to(shockwave, { 'scale.x': 50, 'scale.y': 50 }, {
-      duration: 400,
+    this.animationManager.to(shockwave, { 'scale.x': 20, 'scale.y': 20 }, { // スケールを小さく
+      duration: 300, // 時間を短く
       easing: (t: number) => 1 - Math.pow(1 - t, 3)
     })
 
-    this.animationManager.fadeOut(shockwave, 400, () => {
+    this.animationManager.fadeOut(shockwave, 300, () => {
       this.container.removeChild(shockwave)
       shockwave.destroy()
     })
@@ -102,55 +108,55 @@ export class EffectManager {
 
     this.container.addChild(sparkles)
 
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 4; i++) { // 数を半分に
       const sparkle = new PIXI.Graphics()
       sparkle
-        .star(0, 0, 4, 3, 1)
-        .fill({ color: NEON_COLORS.warning.neonOrange, alpha: 0.8 })
+        .star(0, 0, 3, 2, 1) // サイズを小さく
+        .fill({ color: NEON_COLORS.warning.neonOrange, alpha: 0.6 }) // 透明度を下げる
 
-      const angle = (i / 8) * Math.PI * 2
-      sparkle.x = Math.cos(angle) * 15
-      sparkle.y = Math.sin(angle) * 15
+      const angle = (i / 4) * Math.PI * 2
+      sparkle.x = Math.cos(angle) * 10 // 距離を短く
+      sparkle.y = Math.sin(angle) * 10
       sparkle.scale.set(0)
 
       sparkles.addChild(sparkle)
 
-      this.animationManager.to(sparkle, { 'scale.x': 1, 'scale.y': 1 }, {
-        duration: 200,
+      this.animationManager.to(sparkle, { 'scale.x': 0.8, 'scale.y': 0.8 }, { // スケールを小さく
+        duration: 150, // 時間を短く
         easing: (t: number) => 1 - Math.pow(1 - t, 3)
       })
 
       setTimeout(() => {
-        this.animationManager.fadeOut(sparkle, 200, () => {
+        this.animationManager.fadeOut(sparkle, 150, () => {
           sparkles.removeChild(sparkle)
           sparkle.destroy()
         })
-      }, 300)
+      }, 200) // タイミングを早く
     }
 
     setTimeout(() => {
       this.container.removeChild(sparkles)
       sparkles.destroy()
-    }, 800)
+    }, 500) // 全体時間を短く
   }
 
   public createRevealEffect(x: number, y: number, size: number = 32): void {
     const ripple = new PIXI.Graphics()
     ripple
       .rect(-size/2, -size/2, size, size)
-      .stroke({ width: 2, color: NEON_COLORS.accent.neonBlue, alpha: 0.6 })
+      .stroke({ width: 1, color: NEON_COLORS.accent.neonBlue, alpha: 0.4 }) // 線幅と透明度を控えめに
     ripple.x = x + size / 2
     ripple.y = y + size / 2
     ripple.scale.set(0)
 
     this.container.addChild(ripple)
 
-    this.animationManager.to(ripple, { 'scale.x': 1.5, 'scale.y': 1.5 }, {
-      duration: 300,
+    this.animationManager.to(ripple, { 'scale.x': 1.2, 'scale.y': 1.2 }, { // スケールを小さく
+      duration: 200, // 時間を短く
       easing: (t: number) => 1 - Math.pow(1 - t, 2)
     })
 
-    this.animationManager.fadeOut(ripple, 300, () => {
+    this.animationManager.fadeOut(ripple, 200, () => {
       this.container.removeChild(ripple)
       ripple.destroy()
     })
@@ -163,33 +169,36 @@ export class EffectManager {
   }
 
   public createVictoryEffect(): void {
+    console.log('🔧 Creating cyberpunk victory effect across full canvas')
     this.createMatrixRain()
     this.createGlitchOverlay()
     this.createVictoryText()
     this.createHexagonGrid()
+    this.createBinaryRain()
     // 震えるアニメーションを無効化
     // this.screenShake(15, 800)
   }
 
   private createMatrixRain(): void {
     const characters = '0123456789ABCDEF#※▓▒░'
-    const columnCount = 30
-    const stageWidth = this.container.parent ? (this.container.parent as any).width || 800 : 800
-    const stageHeight = this.container.parent ? (this.container.parent as any).height || 600 : 600
+    const { stageWidth, stageHeight } = this.getStageSize()
+    const columnCount = Math.min(50, Math.floor(stageWidth / 15)) // より密度の高いマトリックスレイン
 
     for (let i = 0; i < columnCount; i++) {
       const column = new PIXI.Container()
       column.x = (i / columnCount) * stageWidth
       this.container.addChild(column)
 
-      const dropCount = Math.floor(Math.random() * 8) + 5
+      const dropCount = Math.floor(Math.random() * 12) + 8 // より多くの文字を表示
+      const matrixFontSize = Math.min(16, Math.max(10, stageWidth / 50)) // 画面幅に応じてフォントサイズを調整
+      
       for (let j = 0; j < dropCount; j++) {
         const char = characters[Math.floor(Math.random() * characters.length)]
         const text = new PIXI.Text({
           text: char,
           style: {
             fontFamily: 'monospace',
-            fontSize: 16,
+            fontSize: matrixFontSize,
             fill: NEON_COLORS.accent.neonGreen,
             fontWeight: 'bold'
           }
@@ -228,8 +237,7 @@ export class EffectManager {
 
   private createGlitchOverlay(): void {
     const overlay = new PIXI.Graphics()
-    const stageWidth = this.container.parent ? (this.container.parent as any).width || 800 : 800
-    const stageHeight = this.container.parent ? (this.container.parent as any).height || 600 : 600
+    const { stageWidth, stageHeight } = this.getStageSize()
     
     overlay.rect(0, 0, stageWidth, stageHeight)
     overlay.fill({ color: 0x00ffff, alpha: 0.15 })
@@ -259,20 +267,21 @@ export class EffectManager {
     const messages = ['SYSTEM BREACHED', 'ACCESS GRANTED', 'MISSION COMPLETE', 'NEURAL LINK ESTABLISHED']
     const message = messages[Math.floor(Math.random() * messages.length)]
     
-    const stageWidth = this.container.parent ? (this.container.parent as any).width || 800 : 800
-    const stageHeight = this.container.parent ? (this.container.parent as any).height || 600 : 600
+    const { stageWidth } = this.getStageSize()
+    // 画面サイズに応じてフォントサイズを調整
+    const fontSize = Math.min(48, Math.max(24, stageWidth / 16))
 
     const text = new PIXI.Text({
       text: message,
       style: {
         fontFamily: 'monospace',
-        fontSize: 48,
+        fontSize,
         fill: NEON_COLORS.accent.neonCyan,
         fontWeight: 'bold',
-        stroke: { color: 0x000000, width: 3 },
+        stroke: { color: 0x000000, width: Math.max(1, fontSize / 16) },
         dropShadow: {
           color: NEON_COLORS.accent.neonCyan,
-          blur: 10,
+          blur: fontSize / 5,
           distance: 0,
           alpha: 0.8
         }
@@ -281,7 +290,11 @@ export class EffectManager {
 
     text.anchor.set(0.5)
     text.x = stageWidth / 2
-    text.y = stageHeight / 2
+    
+    // グリッドの下部に配置
+    const gridPosition = this.getGridBottomPosition()
+    text.y = gridPosition
+    
     text.scale.set(0)
     text.alpha = 0
 
@@ -302,14 +315,17 @@ export class EffectManager {
     })
 
     let glitchTextCount = 0
+    const originalY = text.y
     const textGlitchInterval = setInterval(() => {
       text.style.fill = Math.random() > 0.5 ? NEON_COLORS.accent.neonCyan : NEON_COLORS.warning.neonRed
       text.x = stageWidth / 2 + (Math.random() - 0.5) * 20
+      text.y = originalY + (Math.random() - 0.5) * 10 // Y座標も少しグリッチさせる
       
       glitchTextCount++
       if (glitchTextCount > 15) {
         clearInterval(textGlitchInterval)
         text.x = stageWidth / 2
+        text.y = originalY
         text.style.fill = NEON_COLORS.accent.neonCyan
         
         setTimeout(() => {
@@ -327,9 +343,8 @@ export class EffectManager {
   }
 
   private createHexagonGrid(): void {
-    const hexSize = 30
-    const stageWidth = this.container.parent ? (this.container.parent as any).width || 800 : 800
-    const stageHeight = this.container.parent ? (this.container.parent as any).height || 600 : 600
+    const { stageWidth, stageHeight } = this.getStageSize()
+    const hexSize = Math.min(30, Math.max(15, stageWidth / 30)) // 画面サイズに応じてヘキサゴンサイズを調整
     
     const cols = Math.ceil(stageWidth / (hexSize * 1.5)) + 2
     const rows = Math.ceil(stageHeight / (hexSize * Math.sqrt(3))) + 2
@@ -380,6 +395,144 @@ export class EffectManager {
           }, delay)
         }
       }
+    }
+  }
+
+  /**
+   * ステージサイズを正確に取得
+   */
+  private getStageSize(): { stageWidth: number; stageHeight: number } {
+    // PIXIアプリケーションから直接サイズを取得
+    let stageWidth = 800
+    let stageHeight = 600
+    
+    // stageからアプリケーションを辿ってサイズを取得
+    const app = (this.stage as any).app || (this.stage as any)._app
+    if (app && app.screen) {
+      stageWidth = app.screen.width
+      stageHeight = app.screen.height
+    } else if (this.stage.parent && (this.stage.parent as any).width) {
+      // 親コンテナからサイズを取得
+      stageWidth = (this.stage.parent as any).width
+      stageHeight = (this.stage.parent as any).height
+    } else {
+      // フォールバック: ウィンドウサイズを使用
+      stageWidth = window.innerWidth
+      stageHeight = window.innerHeight
+    }
+    
+    console.log('🎬 Effect stage size:', { stageWidth, stageHeight })
+    return { stageWidth, stageHeight }
+  }
+
+  /**
+   * グリッドの下部位置を計算
+   */
+  private getGridBottomPosition(): number {
+    // stageからグリッドコンテナを探す
+    const findGridContainer = (container: PIXI.Container): PIXI.Container | null => {
+      for (const child of container.children) {
+        if (child instanceof PIXI.Container) {
+          // グリッドコンテナは通常多数の子要素（セル）を持つ
+          if (child.children.length > 10) {
+            // 子要素の最初の要素にlabelプロパティがあるかチェック（セルの特徴）
+            const firstChild = child.children[0] as any
+            if (firstChild && firstChild.label && typeof firstChild.label === 'string') {
+              return child
+            }
+          }
+          // 再帰的に探索
+          const found = findGridContainer(child)
+          if (found) return found
+        }
+      }
+      return null
+    }
+
+    const gridContainer = findGridContainer(this.stage)
+    if (gridContainer) {
+      // グリッドの境界を計算
+      const bounds = gridContainer.getBounds()
+      const gridBottom = bounds.y + bounds.height
+      const { stageHeight } = this.getStageSize()
+      
+      // グリッドの下部から画面下端までの中間位置に配置
+      const availableSpace = stageHeight - gridBottom
+      const textPosition = gridBottom + Math.max(60, availableSpace / 2)
+      
+      console.log('📍 Victory text position:', { 
+        gridBottom, 
+        stageHeight, 
+        availableSpace, 
+        textPosition 
+      })
+      
+      return Math.min(textPosition, stageHeight - 50) // 画面下端から最低50px確保
+    }
+    
+    // グリッドが見つからない場合のフォールバック
+    const { stageHeight } = this.getStageSize()
+    return stageHeight * 0.75 // 画面下部75%の位置
+  }
+
+
+  /**
+   * バイナリレインエフェクト（0と1の雨）
+   */
+  private createBinaryRain(): void {
+    const { stageWidth, stageHeight } = this.getStageSize()
+    const columnCount = Math.min(20, Math.floor(stageWidth / 30))
+
+    for (let i = 0; i < columnCount; i++) {
+      setTimeout(() => {
+        const column = new PIXI.Container()
+        column.x = (i / columnCount) * stageWidth + Math.random() * 30
+        this.container.addChild(column)
+
+        const dropCount = Math.floor(Math.random() * 15) + 10
+        const fontSize = Math.min(14, Math.max(10, stageWidth / 60))
+        
+        for (let j = 0; j < dropCount; j++) {
+          const binary = Math.random() > 0.5 ? '1' : '0'
+          const text = new PIXI.Text({
+            text: binary,
+            style: {
+              fontFamily: 'monospace',
+              fontSize,
+              fill: NEON_COLORS.warning.neonOrange,
+              fontWeight: 'bold'
+            }
+          })
+          
+          text.x = Math.random() * 10 - 5
+          text.y = -Math.random() * 300 - 50
+          text.alpha = Math.random() * 0.7 + 0.3
+          column.addChild(text)
+
+          this.animationManager.to(text, { y: stageHeight + 50 }, {
+            duration: Math.random() * 2000 + 3000,
+            easing: (t: number) => t
+          })
+
+          this.animationManager.fadeOut(text, Math.random() * 1000 + 3000, () => {
+            if (text.parent) {
+              text.parent.removeChild(text)
+            }
+            if (!text.destroyed) {
+              text.destroy()
+            }
+          })
+        }
+
+        setTimeout(() => {
+          if (column.parent) {
+            column.parent.removeChild(column)
+          }
+          if (!column.destroyed) {
+            column.destroy({ children: true })
+          }
+        }, 5000)
+      }, Math.random() * 1500)
     }
   }
 

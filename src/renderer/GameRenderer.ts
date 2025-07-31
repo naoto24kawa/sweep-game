@@ -21,23 +21,34 @@ export class GameRenderer {
     const gameWidth = config.width * (32 + 2) - 2  // cellSize + cellSpacing
     const gameHeight = config.height * (32 + 2) - 2
     
-    // statsパネル用のスペースを追加
-    const headerHeight = 100
-    const gridYPosition = 120
-    const statsHeight = 180  // statsパネル自体の高さ
-    const statsMargin = 40   // statsパネル上下のマージン
-    const canvasWidth = gameWidth
-    const canvasHeight = headerHeight + gridYPosition + gameHeight + statsHeight + statsMargin
+    // デバイス検出
+    const isMobile = this.isMobileDevice()
     
-    console.log('🎨 Canvas size calculation:', { 
+    let canvasWidth: number
+    let canvasHeight: number
+    
+    if (isMobile) {
+      // スマートフォンでは画面いっぱいに設定
+      canvasWidth = window.innerWidth
+      canvasHeight = window.innerHeight
+      console.log('📱 Mobile device detected - using full screen:', { canvasWidth, canvasHeight })
+    } else {
+      // PCでは従来通りゲームサイズに基づいて計算
+      const headerHeight = 100
+      const gridYPosition = 120
+      const statsHeight = 180  // statsパネル自体の高さ
+      const statsMargin = 40   // statsパネル上下のマージン
+      canvasWidth = gameWidth
+      canvasHeight = headerHeight + gridYPosition + gameHeight + statsHeight + statsMargin
+      console.log('💻 Desktop device - using calculated size')
+    }
+    
+    console.log('🎨 Final canvas size:', { 
       gameWidth, 
       gameHeight, 
-      headerHeight,
-      gridYPosition,
-      statsHeight, 
-      statsMargin,
       canvasWidth, 
-      canvasHeight 
+      canvasHeight,
+      isMobile
     })
 
     this.initializationPromise = this.initialize(gameLogic, soundManager, canvasWidth, canvasHeight)
@@ -59,6 +70,12 @@ export class GameRenderer {
     await this.pixiAppManager.initializeApp(width, height)
     
     this.gridManager = new GridManager(gameLogic, this.pixiAppManager.getApp())
+    
+    // リサイズ時にグリッドを再中央配置するコールバックを設定
+    this.pixiAppManager.setResizeCallback(() => {
+      this.gridManager.recenterGrid()
+    })
+    
     this.gridManager.setupGrid()
 
     this.eventHandler = new GridEventHandler(
@@ -68,6 +85,38 @@ export class GameRenderer {
       soundManager || null,
       () => this.updateDisplay()
     )
+
+    // グリッド位置変更時にイベントハンドラーのオフセットを更新
+    this.gridManager.setGridPositionChangeCallback((gridContainer) => {
+      this.eventHandler.updateGridOffset(gridContainer)
+    })
+  }
+
+  /**
+   * モバイルデバイスかどうかを判定
+   * @returns モバイルデバイスの真偽値
+   */
+  private isMobileDevice(): boolean {
+    // User-Agentベースの基本的な判定
+    const userAgent = navigator.userAgent.toLowerCase()
+    const mobileKeywords = ['mobile', 'android', 'iphone', 'ipad', 'ipod', 'blackberry', 'windows phone']
+    const isMobileUA = mobileKeywords.some(keyword => userAgent.includes(keyword))
+    
+    // 画面サイズベースの判定
+    const isMobileScreen = window.innerWidth <= 768
+    
+    // タッチデバイスの判定
+    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0
+    
+    console.log('🔍 Device detection:', { 
+      userAgent: userAgent.substring(0, 50) + '...', 
+      isMobileUA, 
+      isMobileScreen, 
+      isTouchDevice,
+      screenSize: { width: window.innerWidth, height: window.innerHeight }
+    })
+    
+    return isMobileUA || (isMobileScreen && isTouchDevice)
   }
 
   /**
@@ -97,6 +146,13 @@ export class GameRenderer {
    */
   public updateDisplay(): void {
     this.gridManager.updateDisplay()
+  }
+
+  /**
+   * グリッドを再中央配置
+   */
+  public recenterGrid(): void {
+    this.gridManager.recenterGrid()
   }
 
   /**

@@ -12,6 +12,7 @@ export class GridManager {
   private readonly cellSpacing = RENDER_CONSTANTS.CELL.SPACING
   private gridContainer: PIXI.Container
   private cellRenderer: CellRenderer
+  private onGridPositionChanged?: (gridContainer: PIXI.Container) => void
 
   constructor(private gameLogic: GameLogic, private app: PIXI.Application) {
     this.gridContainer = new PIXI.Container()
@@ -64,26 +65,57 @@ export class GridManager {
   }
 
   /**
-   * グリッドを適切な位置に配置（ヘッダーの下、中央揃え）
+   * グリッドを画面の上下左右中央に配置
    */
   private centerGrid(): void {
     const config = this.gameLogic.getConfig()
     const gridWidth = config.width * (this.cellSize + this.cellSpacing) - this.cellSpacing
     const gridHeight = config.height * (this.cellSize + this.cellSpacing) - this.cellSpacing
 
-    // グリッドが画面幅と同じ場合は左端に配置、そうでなければ中央に配置
-    this.gridContainer.x = gridWidth >= this.app.screen.width ? 0 : (this.app.screen.width - gridWidth) / 2
-    this.gridContainer.y = 120  // ヘッダー（100px）の下に配置
+    // 最小マージンを確保
+    const minMargin = 20
+    const availableWidth = this.app.screen.width - (minMargin * 2)
+    const availableHeight = this.app.screen.height - (minMargin * 2)
     
-    console.log('🎯 Grid positioned:', { 
+    // X座標：左右中央に配置
+    if (gridWidth <= availableWidth) {
+      this.gridContainer.x = (this.app.screen.width - gridWidth) / 2
+    } else {
+      this.gridContainer.x = minMargin
+    }
+    
+    // Y座標：上下中央に配置
+    if (gridHeight <= availableHeight) {
+      this.gridContainer.y = (this.app.screen.height - gridHeight) / 2
+    } else {
+      this.gridContainer.y = minMargin
+    }
+    
+    console.log('🎯 Grid positioned (center):', { 
       x: this.gridContainer.x, 
       y: this.gridContainer.y, 
       gridWidth, 
       gridHeight,
       screenWidth: this.app.screen.width,
       screenHeight: this.app.screen.height,
-      calculation: `(${this.app.screen.width} - ${gridWidth}) / 2 = ${(this.app.screen.width - gridWidth) / 2}`
+      availableWidth,
+      availableHeight,
+      minMargin,
+      isCenteredX: gridWidth <= availableWidth,
+      isCenteredY: gridHeight <= availableHeight
     })
+
+    // グリッド位置が変更されたことを通知
+    if (this.onGridPositionChanged) {
+      this.onGridPositionChanged(this.gridContainer)
+    }
+  }
+
+  /**
+   * グリッドを再配置（外部から呼び出し可能）
+   */
+  public recenterGrid(): void {
+    this.centerGrid()
   }
 
   /**
@@ -92,5 +124,13 @@ export class GridManager {
    */
   public getGridContainer(): PIXI.Container {
     return this.gridContainer
+  }
+
+  /**
+   * グリッド位置変更時のコールバックを設定
+   * @param callback グリッド位置変更時のコールバック関数
+   */
+  public setGridPositionChangeCallback(callback: (gridContainer: PIXI.Container) => void): void {
+    this.onGridPositionChanged = callback
   }
 }

@@ -9,6 +9,7 @@ import { StatsManager } from '@/stats/StatsManager'
 import { SettingsManager } from '@/settings/SettingsManager'
 import { PerformanceMonitor } from '@/performance/PerformanceMonitor'
 import { LevelSelector } from '@/ui/LevelSelector'
+import { StatsModal } from '@/ui/StatsModal'
 import { Difficulty, DIFFICULTY_CONFIGS } from '@/types'
 
 export class Game {
@@ -23,6 +24,7 @@ export class Game {
   private settingsManager: SettingsManager
   private performanceMonitor: PerformanceMonitor
   private levelSelector!: LevelSelector
+  private statsModal!: StatsModal
   private container: HTMLElement
   private currentDifficulty: Difficulty
   private isInitialized = false
@@ -49,6 +51,7 @@ export class Game {
     await this.initializeRenderer()
     await this.initializeUI()
     this.initializeLevelSelector()
+    this.initializeStatsModal()
     this.initializeEventHandlers()
     this.initializeGameStateWatcher()
     this.applySettings()
@@ -93,6 +96,19 @@ export class Game {
     })
   }
 
+  private initializeStatsModal(): void {
+    console.log('Creating StatsModal')
+    const stage = this.renderer.getApp().stage
+    const app = this.renderer.getApp()
+    this.statsModal = new StatsModal(stage, this.statsManager, this.gameLogic, {
+      onClose: () => this.handleStatsModalClose(),
+      onRestart: () => this.handleStatsModalRestart(),
+      onLevelSelect: () => this.handleStatsModalLevelSelect(),
+      canvasWidth: app.screen.width,
+      canvasHeight: app.screen.height
+    })
+  }
+
   private initializeEventHandlers(): void {
     this.eventManager = new EventManager(
       this.gameUI, 
@@ -107,7 +123,13 @@ export class Game {
       this.gameLogic, 
       this.soundManager, 
       this.statsManager, 
-      this.renderer
+      this.renderer,
+      {
+        onGameSuccess: () => this.showStatsModal(),
+        onGameFailed: () => {
+          // 失敗時は特に何もしない（将来的に失敗時の処理があれば追加）
+        }
+      }
     )
     this.gameStateWatcher.startWatching()
   }
@@ -144,9 +166,29 @@ export class Game {
     // レベルが選択されていない場合のデフォルトの動作は特に設定しない
   }
 
+  private handleStatsModalClose(): void {
+    console.log('Stats modal closed')
+  }
+
+  private handleStatsModalRestart(): void {
+    console.log('Stats modal restart requested')
+    this.restart()
+  }
+
+  private handleStatsModalLevelSelect(): void {
+    console.log('Stats modal level select requested')
+    this.showLevelSelector()
+  }
+
   public showLevelSelector(): void {
     if (this.levelSelector && this.isInitialized) {
       this.levelSelector.show()
+    }
+  }
+
+  public showStatsModal(): void {
+    if (this.statsModal && this.isInitialized) {
+      this.statsModal.show()
     }
   }
 
@@ -166,6 +208,9 @@ export class Game {
     if (this.levelSelector) {
       this.levelSelector.destroy()
     }
+    if (this.statsModal) {
+      this.statsModal.destroy()
+    }
     this.domHandler.clearContainer()
   }
 
@@ -177,6 +222,7 @@ export class Game {
     await this.initializeRenderer()
     await this.initializeUI()
     this.initializeLevelSelector()
+    this.initializeStatsModal()
     this.initializeGameStateWatcher()
     this.finalizeInitialization()
   }
@@ -205,6 +251,9 @@ export class Game {
     this.gameUI.destroy()
     if (this.levelSelector) {
       this.levelSelector.destroy()
+    }
+    if (this.statsModal) {
+      this.statsModal.destroy()
     }
     this.soundManager.destroy()
     this.performanceMonitor.stop()

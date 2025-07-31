@@ -11,6 +11,7 @@ export class PixiAppManager {
   private app!: PIXI.Application
   private animationManager!: AnimationManager
   private effectManager!: EffectManager
+  private resizeCallback?: () => void
 
   /**
    * PIXIアプリケーションを初期化
@@ -25,10 +26,13 @@ export class PixiAppManager {
       width,
       height,
       backgroundColor: NEON_COLORS.primary.deepBlack,
-      antialias: true
+      antialias: true,
+      resizeTo: window // ウィンドウサイズに自動リサイズ
     })
 
     this.initializeManagers()
+    this.setupResizeHandler()
+    console.log('🎨 PIXI app initialized with size:', { width, height })
   }
 
   /**
@@ -37,6 +41,50 @@ export class PixiAppManager {
   private initializeManagers(): void {
     this.animationManager = new AnimationManager()
     this.effectManager = new EffectManager(this.app.stage, this.animationManager)
+  }
+
+  /**
+   * リサイズハンドラーを設定
+   */
+  private setupResizeHandler(): void {
+    const handleResize = () => {
+      // モバイルデバイスでの画面回転時などに対応
+      if (this.isMobileDevice()) {
+        this.app.renderer.resize(window.innerWidth, window.innerHeight)
+        console.log('📱 Canvas resized for mobile:', { 
+          width: window.innerWidth, 
+          height: window.innerHeight 
+        })
+        
+        // リサイズ後にコールバックを実行（グリッド再中央配置など）
+        if (this.resizeCallback) {
+          setTimeout(this.resizeCallback, 100) // 少し遅延してから実行
+        }
+      }
+    }
+
+    window.addEventListener('resize', handleResize)
+    window.addEventListener('orientationchange', handleResize)
+  }
+
+  /**
+   * リサイズ時のコールバックを設定
+   */
+  public setResizeCallback(callback: () => void): void {
+    this.resizeCallback = callback
+  }
+
+  /**
+   * モバイルデバイスかどうかを判定
+   */
+  private isMobileDevice(): boolean {
+    const userAgent = navigator.userAgent.toLowerCase()
+    const mobileKeywords = ['mobile', 'android', 'iphone', 'ipad', 'ipod', 'blackberry', 'windows phone']
+    const isMobileUA = mobileKeywords.some(keyword => userAgent.includes(keyword))
+    const isMobileScreen = window.innerWidth <= 768
+    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0
+    
+    return isMobileUA || (isMobileScreen && isTouchDevice)
   }
 
   /**
