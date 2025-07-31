@@ -2,115 +2,118 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Common Development Commands
+## プロジェクト概要
 
-### Development Server
+SWEEP Gameは、TypeScript + PixiJS + PWAで構築されたサイバーパンク風マインスイーパーゲームです。60FPSの高性能レンダリングとモジュラー設計が特徴です。
+
+## 開発コマンド
+
+### 基本開発コマンド
 ```bash
-npm run dev         # Start development server on port 3333
-npm run build       # Build for production (TypeScript compile + Vite build)
-npm run preview     # Preview production build
+# 開発サーバー起動（ポート3333）
+npm run dev
+
+# プロダクションビルド
+npm run build
+
+# ビルド結果のプレビュー
+npm run preview
+
+# 型チェック実行
+npm run typecheck
+
+# ESLintによるコード品質チェック
+npm run lint
 ```
 
-### Code Quality
-```bash
-npm run typecheck   # TypeScript type checking (tsc --noEmit)
-npm run lint        # ESLint with TypeScript support
-```
+### 推奨ワークフロー
+新機能実装時は以下の順序で実行してください：
+1. `npm run typecheck` - 型エラーの事前チェック
+2. `npm run lint` - コード品質の確認
+3. `npm run build` - ビルドが成功することを確認
 
-## Architecture Overview
+## アーキテクチャ構造
 
-SWEEP Gameは近未来的なサイバーパンクテーマのマインスイーパーゲームです。TypeScript + PixiJS + PWAで構築された高性能な60FPS Web ゲームです。
+### コアシステム
+- **Game** (`src/game/Game.ts`) - アプリケーション統合管理とライフサイクル制御
+- **ServiceContainer** (`src/core/ServiceContainer.ts`) - 依存性注入とサービス管理
+- **GameLogic** (`src/game/GameLogic.ts`) - ピュアなマインスイーパーロジック
 
-### Core Architecture Pattern
+### レンダリング層
+- **PixiAppManager** (`src/renderer/PixiAppManager.ts`) - PIXI.js初期化とWebGL管理
+- **GridManager** (`src/renderer/GridManager.ts`) - セルグリッドの作成・配置
+- **CellRenderer** (`src/renderer/CellRenderer.ts`) - 個別セルの描画処理
+- **GridEventHandler** (`src/renderer/GridEventHandler.ts`) - マウス・タッチイベント処理
 
-**モジュラー設計**により機能が分離され、各システムが独立して動作します：
+### システム管理
+- **AnimationManager** (`src/animation/AnimationManager.ts`) - 統合アニメーション制御
+- **SoundManager** (`src/audio/SoundManager.ts`) - 音響効果とBGM管理
+- **StatsManager** (`src/stats/StatsManager.ts`) - 統計追跡と実績システム
+- **SettingsManager** (`src/settings/SettingsManager.ts`) - 設定管理と永続化
 
-- **Game** (`src/game/Game.ts`) - メインコーディネータクラス。すべてのシステムを統合管理
-- **GameLogic** (`src/game/GameLogic.ts`) - ピュアなゲームロジック（マインスイーパーのルール）
-- **GameRenderer** (`src/renderer/GameRenderer.ts`) - PixiJS WebGL描画エンジン
-- **GameUI** (`src/ui/GameUI.ts`) - ユーザーインターフェース管理
+### 重要な型定義
+- `GameState` - ゲーム状態（READY, ACTIVE, SUCCESS, FAILED, PAUSED）
+- `Difficulty` - 難易度設定（NOVICE, AGENT, HACKER, CUSTOM）
+- `CellState` - セル状態（HIDDEN, REVEALED, FLAGGED, QUESTIONED）
+- `DIFFICULTY_CONFIGS` - 各難易度の設定値（グリッドサイズ、地雷数）
 
-### System Managers
+### 設計原則
+1. **単一責任原則** - 各クラスは明確に定義された単一の責任を持つ
+2. **依存性注入** - ServiceContainerによる依存関係の管理
+3. **イベント駆動設計** - システム間の疎結合を実現
+4. **型安全性** - TypeScript厳格モードによる型保証
 
-統合管理システムが各機能を一元化：
+## 技術仕様
 
-- **SoundManager** - オーディオ再生制御
-- **StatsManager** - 統計データ管理
-- **SettingsManager** - ユーザー設定管理
-- **PerformanceMonitor** - パフォーマンス監視
-- **AnimationManager** - アニメーション制御
-- **EffectManager** - 視覚エフェクト管理
+### 開発環境
+- TypeScript 5.0+（厳格モード有効）
+- PixiJS v8（WebGL/WebGPU対応）
+- Vite（開発サーバー・ビルドツール）
+- PWA対応（Service Worker自動生成）
 
-### Event-Driven Design
+### パフォーマンス要件
+- 60FPS維持
+- 初回ロード時間3秒以内
+- メモリ使用量最適化
 
-- **EventManager** - キーボード・DOM イベント処理
-- **GameStateWatcher** - ゲーム状態変更の監視・反応
-- **DOMHandler** - DOM操作の統一インターフェース
+### ブラウザ対応
+- モダンブラウザ（Chrome 80+, Firefox 75+, Safari 13+, Edge 80+）
+- モバイル対応（iOS Safari 13+, Android Chrome 80+）
 
-### Performance Optimization
+## ファイル構成の特徴
 
-- **ObjectPool** - オブジェクトの再利用によるGC負荷軽減
-- WebGL レンダリングによる60FPS維持
-- チャンクベースのコード分割 (Vite)
+### `/src`ディレクトリ構造
+- `animation/` - アニメーションエンジン（TweenEngine, EasingFunctions等）
+- `audio/` - サウンドシステム
+- `core/` - コアサービス（ServiceContainer, GameServiceBootstrapper）
+- `effects/` - 視覚エフェクト管理
+- `game/` - ゲームロジックとメイン制御
+- `performance/` - パフォーマンス最適化（ObjectPool, PerformanceMonitor）
+- `renderer/` - レンダリングシステム
+- `settings/` - 設定管理
+- `stats/` - 統計・実績システム
+- `ui/` - UI管理（DOM操作、イベント管理）
 
-## Key Technical Details
+### 設定ファイル
+- `vite.config.ts` - PWA設定、ビルド最適化、エイリアス設定（`@`=`src`）
+- `tsconfig.json` - TypeScript厳格設定
+- `.eslintrc.json` - コード品質ルール
 
-### Dependency Management
-- **PixiJS v8** がメインレンダリングエンジン
-- PWA対応 (vite-plugin-pwa)
-- TypeScript strict mode
-- ESLint設定済み
+## 実装時の注意点
 
-### Game Configuration System
-`src/types.ts` の `DIFFICULTY_CONFIGS` でゲーム設定を管理：
-- NOVICE: 9×9, 10 mines
-- AGENT: 16×16, 40 mines  
-- HACKER: 30×16, 99 mines
-- CUSTOM: 可変設定
+### コード規約
+- 厳格な型チェックを活用
+- 単一責任原則に従ったクラス設計
+- ServiceContainerを通じた依存性管理
+- パフォーマンスを意識したメモリ管理
 
-### Development Path Aliases
-- `@/*` は `src/*` にマップされています
-- すべてのimportで`@/`プレフィックスを使用
+### 新機能追加の流れ
+1. 適切な責任分離でクラスを設計
+2. ServiceContainerに新サービスを登録
+3. 既存システムとはイベント駆動で連携
+4. 型安全性を確保した実装
 
-### Game States
-GameState enum でゲーム状態を管理：
-- READY → ACTIVE → SUCCESS/FAILED
-- PAUSEDも対応
-
-### PWA Configuration
-vite.config.ts でPWA設定：
-- 自動更新対応
-- 5MBまでキャッシュ
-- サイバーパンクテーマカラー (#00ffff)
-
-## File Structure
-
-```
-src/
-├── game/           # ゲームコアロジック
-├── renderer/       # PixiJS描画エンジン
-├── ui/            # UI・イベント処理
-├── audio/         # サウンド管理
-├── stats/         # 統計管理
-├── settings/      # 設定管理
-├── performance/   # パフォーマンス最適化
-├── animation/     # アニメーション管理
-├── effects/       # 視覚エフェクト
-├── types.ts       # 型定義・設定
-└── main.ts        # エントリーポイント
-```
-
-## Design System
-
-### Color Scheme (Cyberpunk/Neon)
-ネオンカラーパレットが `types.ts` の `NEON_COLORS` で定義済み：
-- 数字1-8: それぞれ異なるネオンカラー
-- プライマリー: ダークグレー/ディープブラック
-- アクセント: ネオンブルー/グリーン
-- 警告: ネオンレッド/オレンジ
-
-### Game Mechanics
-- 左クリック: セル開放
-- 右クリック: フラグ切り替え  
-- F5: ゲーム再開
-- 60FPS維持が必須要件
+### デバッグとテスト
+- PerformanceMonitorでパフォーマンス監視
+- 型チェックとLintを必ず実行
+- ブラウザのWebGL/WebGPU対応を確認
