@@ -18,6 +18,8 @@ export class GameUI {
   private startTime: number | null = null
   private currentTime: number = 0
   private updateTimer: number | null = null
+  private lastUpdateTime: number = 0
+  private isActive: boolean = false
 
   constructor(
     stage: PIXI.Container,
@@ -273,13 +275,43 @@ export class GameUI {
   }
 
   private startUpdateLoop(): void {
-    if (this.updateTimer) {
-      clearInterval(this.updateTimer)
+    this.isActive = true
+    this.lastUpdateTime = performance.now()
+    
+    const updateLoop = () => {
+      if (this.shouldUpdateUI()) {
+        this.update()
+      }
+      
+      if (this.isActive) {
+        this.updateTimer = requestAnimationFrame(updateLoop) as unknown as number
+      }
     }
+    
+    this.updateTimer = requestAnimationFrame(updateLoop) as unknown as number
+  }
 
-    this.updateTimer = window.setInterval(() => {
-      this.update()
-    }, 100)
+  private shouldUpdateUI(): boolean {
+    const now = performance.now()
+    if (now - this.lastUpdateTime < this.getUpdateInterval()) {
+      return false
+    }
+    
+    this.lastUpdateTime = now
+    return true
+  }
+
+  private getUpdateInterval(): number {
+    const gameState = this.gameLogic.getGameState()
+    
+    switch (gameState) {
+      case GameState.ACTIVE: 
+        return 100 // アクティブ時は100ms
+      case GameState.READY: 
+        return 500 // 待機時は500ms
+      default: 
+        return 1000 // その他は1秒
+    }
   }
 
   public showStatsPanel(): void {
@@ -299,8 +331,9 @@ export class GameUI {
   }
 
   public destroy(): void {
+    this.isActive = false
     if (this.updateTimer) {
-      clearInterval(this.updateTimer)
+      cancelAnimationFrame(this.updateTimer)
       this.updateTimer = null
     }
     this.container.destroy({ children: true })

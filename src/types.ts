@@ -79,3 +79,43 @@ export const NEON_COLORS = {
     lightGray: '#cccccc'
   }
 }
+
+export const RENDER_CONSTANTS = {
+  CELL: {
+    SIZE: 32,
+    SPACING: 2,
+    BORDER_WIDTH: 1,
+    CORNER_RADIUS: 2
+  },
+  ANIMATION: {
+    REVEAL_DURATION: 200,
+    FLAG_DURATION: 150,
+    BOUNCE_DURATION: 400,
+    FADE_DURATION: 300
+  },
+  EFFECTS: {
+    PULSE_INTENSITY: 0.05,
+    PULSE_DURATION: 2000,
+    SHAKE_INTENSITY: 15,
+    SHAKE_DURATION: 500
+  }
+} as const
+
+export interface CellClickInfo {
+  coordinates: { x: number; y: number }
+  cell: Cell
+  container: any // PIXI.Container
+  worldPosition: { x: number; y: number }
+}
+
+export interface ActionResult {
+  shouldPlayEffect: boolean
+  effectType?: 'explosion' | 'reveal' | 'flag'
+}
+
+export class GameInitializationError extends Error {
+  constructor(message: string, public readonly code: string = 'INIT_FAILED') {
+    super(message)
+    this.name = 'GameInitializationError'
+  }
+}

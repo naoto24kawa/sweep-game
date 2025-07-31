@@ -1,6 +1,6 @@
 import * as PIXI from 'pixi.js'
 import { GameLogic } from '@/game/GameLogic'
-import { Cell, CellState, NEON_COLORS, GameState } from '@/types'
+import { Cell, CellState, NEON_COLORS, GameState, RENDER_CONSTANTS, CellClickInfo, ActionResult } from '@/types'
 import { AnimationManager } from '@/animation/AnimationManager'
 import { EffectManager } from '@/effects/EffectManager'
 import { SoundManager, SoundType } from '@/audio/SoundManager'
@@ -9,8 +9,8 @@ export class GameRenderer {
   private app!: PIXI.Application
   private gameLogic: GameLogic
   private gridContainer: PIXI.Container
-  private cellSize: number = 32
-  private cellSpacing: number = 2
+  private readonly cellSize = RENDER_CONSTANTS.CELL.SIZE
+  private readonly cellSpacing = RENDER_CONSTANTS.CELL.SPACING
   private animationManager!: AnimationManager
   private effectManager!: EffectManager
   private soundManager: SoundManager | null = null
@@ -280,113 +280,143 @@ export class GameRenderer {
   }
 
   public setupEventHandlers(): void {
-    console.log('Setting up event handlers for grid container')
-    
-    // グリッドコンテナのイベントモードを設定
+    this.setupContainerEventMode()
+    this.registerClickHandlers()
+    this.registerHoverHandlers()
+    this.registerContextMenuHandlers()
+  }
+
+  private setupContainerEventMode(): void {
     this.gridContainer.eventMode = 'static'
-    console.log('Grid container eventMode set to static')
-    
-    this.gridContainer.on('pointerdown', (event: PIXI.FederatedPointerEvent) => {
-      console.log('pointerdown event fired:', {
-        button: event.button,
-        target: event.target,
-        targetParent: event.target.parent,
-        eventType: event.type
-      })
-      
-      // イベントターゲットがGraphicsの場合、その親がセルコンテナ
-      // イベントターゲットがContainerの場合、それ自体がセルコンテナ
-      let cellContainer = event.target as PIXI.Container
-      if (!cellContainer.label && cellContainer.parent) {
-        cellContainer = cellContainer.parent as PIXI.Container
-      }
-      
-      console.log('cellContainer:', cellContainer, 'label:', cellContainer?.label)
-      
-      if (!cellContainer || !cellContainer.label) {
-        console.warn('No cellContainer or label found', {
-          target: event.target,
-          targetParent: event.target.parent,
-          targetLabel: (event.target as any).label,
-          parentLabel: (event.target.parent as any)?.label
-        })
-        return
-      }
+  }
 
-      const [x, y] = cellContainer.label.split('-').map(Number)
-      console.log('Parsed coordinates:', { x, y })
-      
-      const cell = this.gameLogic.getCells()[y][x]
-      console.log('Target cell:', cell)
-      
-      const cellX = x * (this.cellSize + this.cellSpacing)
-      const cellY = y * (this.cellSize + this.cellSpacing)
-      
-      if (event.button === 0) {
-        console.log('Left click detected, calling revealCell')
-        const wasRevealed = this.gameLogic.revealCell(x, y)
-        console.log('revealCell result:', wasRevealed)
-        
-        if (wasRevealed) {
-          if (cell.isMine) {
-            console.log('Mine revealed, creating explosion effect')
-            this.effectManager.createExplosionEffect(cellX, cellY, this.cellSize)
-            this.effectManager.screenShake(15, 500)
-            if (this.soundManager) this.soundManager.play(SoundType.EXPLOSION)
-          } else {
-            console.log('Normal cell revealed, creating reveal effect')
-            this.effectManager.createRevealEffect(cellX, cellY, this.cellSize)
-            if (this.soundManager) this.soundManager.play(SoundType.REVEAL)
-          }
-        }
-      } else if (event.button === 2) {
-        console.log('Right click detected, calling toggleFlag')
-        const wasToggled = this.gameLogic.toggleFlag(x, y)
-        console.log('toggleFlag result:', wasToggled)
-        
-        if (wasToggled && cell.state === CellState.FLAGGED) {
-          console.log('Flag placed, creating flag effect')
-          this.effectManager.createFlagEffect(cellX, cellY, this.cellSize)
-          this.animationManager.bounce(cellContainer, 400)
-          if (this.soundManager) this.soundManager.play(SoundType.FLAG)
-        }
-      }
+  private registerClickHandlers(): void {
+    this.gridContainer.on('pointerdown', this.handleCellClick.bind(this))
+  }
 
-      console.log('Updating display')
-      this.updateDisplay()
-    })
+  private registerHoverHandlers(): void {
+    this.gridContainer.on('pointerover', this.handleCellHover.bind(this))
+    this.gridContainer.on('pointerout', this.handleCellOut.bind(this))
+  }
 
-    this.gridContainer.on('pointerover', (event: PIXI.FederatedPointerEvent) => {
-      let cellContainer = event.target as PIXI.Container
-      if (!cellContainer.label && cellContainer.parent) {
-        cellContainer = cellContainer.parent as PIXI.Container
-      }
-      if (!cellContainer || !cellContainer.label) return
-
-      const [x, y] = cellContainer.label.split('-').map(Number)
-      const cell = this.gameLogic.getCells()[y][x]
-      
-      if (cell.state === CellState.HIDDEN && this.gameLogic.getGameState() === GameState.ACTIVE) {
-        this.hoveredCell = cellContainer
-        this.addHoverEffect(cellContainer)
-        if (this.soundManager) this.soundManager.play(SoundType.HOVER)
-      }
-    })
-
-    this.gridContainer.on('pointerout', (event: PIXI.FederatedPointerEvent) => {
-      let cellContainer = event.target as PIXI.Container
-      if (!cellContainer.label && cellContainer.parent) {
-        cellContainer = cellContainer.parent as PIXI.Container
-      }
-      if (cellContainer === this.hoveredCell) {
-        this.removeHoverEffect(cellContainer)
-        this.hoveredCell = null
-      }
-    })
-
+  private registerContextMenuHandlers(): void {
     this.gridContainer.on('rightclick', (event: PIXI.FederatedPointerEvent) => {
       event.preventDefault()
     })
+  }
+
+  private handleCellClick(event: PIXI.FederatedPointerEvent): void {
+    const cellInfo = this.extractCellInfoFromEvent(event)
+    if (!cellInfo) return
+
+    const actionResult = this.processUserAction(event.button, cellInfo)
+    if (actionResult.shouldPlayEffect) {
+      this.playInteractionEffects(actionResult, cellInfo)
+    }
+    
+    this.updateDisplay()
+  }
+
+  private extractCellInfoFromEvent(event: PIXI.FederatedPointerEvent): CellClickInfo | null {
+    const cellContainer = this.findCellContainer(event.target as PIXI.Container)
+    if (!cellContainer?.label) return null
+
+    const coordinates = this.parseCellCoordinates(cellContainer.label)
+    const cell = this.gameLogic.getCells()[coordinates.y][coordinates.x]
+    
+    return {
+      coordinates,
+      cell,
+      container: cellContainer,
+      worldPosition: this.calculateWorldPosition(coordinates)
+    }
+  }
+
+  private findCellContainer(target: PIXI.Container): PIXI.Container | null {
+    let cellContainer = target
+    if (!cellContainer.label && cellContainer.parent) {
+      cellContainer = cellContainer.parent as PIXI.Container
+    }
+    return cellContainer?.label ? cellContainer : null
+  }
+
+  private parseCellCoordinates(label: string): { x: number; y: number } {
+    const [x, y] = label.split('-').map(Number)
+    return { x, y }
+  }
+
+  private calculateWorldPosition(coordinates: { x: number; y: number }): { x: number; y: number } {
+    return {
+      x: coordinates.x * (this.cellSize + this.cellSpacing),
+      y: coordinates.y * (this.cellSize + this.cellSpacing)
+    }
+  }
+
+  private processUserAction(button: number, cellInfo: CellClickInfo): ActionResult {
+    const { coordinates, cell } = cellInfo
+    
+    if (button === 0) {
+      const wasRevealed = this.gameLogic.revealCell(coordinates.x, coordinates.y)
+      if (wasRevealed) {
+        return {
+          shouldPlayEffect: true,
+          effectType: cell.isMine ? 'explosion' : 'reveal'
+        }
+      }
+    } else if (button === 2) {
+      const wasToggled = this.gameLogic.toggleFlag(coordinates.x, coordinates.y)
+      if (wasToggled && cell.state === CellState.FLAGGED) {
+        return {
+          shouldPlayEffect: true,
+          effectType: 'flag'
+        }
+      }
+    }
+    
+    return { shouldPlayEffect: false }
+  }
+
+  private playInteractionEffects(actionResult: ActionResult, cellInfo: CellClickInfo): void {
+    const { worldPosition, container } = cellInfo
+    
+    switch (actionResult.effectType) {
+      case 'explosion':
+        this.effectManager.createExplosionEffect(worldPosition.x, worldPosition.y, this.cellSize)
+        this.effectManager.screenShake(RENDER_CONSTANTS.EFFECTS.SHAKE_INTENSITY, RENDER_CONSTANTS.EFFECTS.SHAKE_DURATION)
+        if (this.soundManager) this.soundManager.play(SoundType.EXPLOSION)
+        break
+      case 'reveal':
+        this.effectManager.createRevealEffect(worldPosition.x, worldPosition.y, this.cellSize)
+        if (this.soundManager) this.soundManager.play(SoundType.REVEAL)
+        break
+      case 'flag':
+        this.effectManager.createFlagEffect(worldPosition.x, worldPosition.y, this.cellSize)
+        this.animationManager.bounce(container, RENDER_CONSTANTS.ANIMATION.BOUNCE_DURATION)
+        if (this.soundManager) this.soundManager.play(SoundType.FLAG)
+        break
+    }
+  }
+
+  private handleCellHover(event: PIXI.FederatedPointerEvent): void {
+    const cellContainer = this.findCellContainer(event.target as PIXI.Container)
+    if (!cellContainer?.label) return
+
+    const coordinates = this.parseCellCoordinates(cellContainer.label)
+    const cell = this.gameLogic.getCells()[coordinates.y][coordinates.x]
+    
+    if (cell.state === CellState.HIDDEN && this.gameLogic.getGameState() === GameState.ACTIVE) {
+      this.hoveredCell = cellContainer
+      this.addHoverEffect(cellContainer)
+      if (this.soundManager) this.soundManager.play(SoundType.HOVER)
+    }
+  }
+
+  private handleCellOut(event: PIXI.FederatedPointerEvent): void {
+    const cellContainer = this.findCellContainer(event.target as PIXI.Container)
+    if (cellContainer === this.hoveredCell && cellContainer) {
+      this.removeHoverEffect(cellContainer)
+      this.hoveredCell = null
+    }
   }
 
   private addHoverEffect(cellContainer: PIXI.Container): void {

@@ -47,21 +47,71 @@ export class SettingsManager {
     return this.getDefaultSettings()
   }
 
-  private mergeSettings(defaults: GameSettings, stored: any): GameSettings {
-    const merged = { ...defaults }
-    
-    if (stored && typeof stored === 'object') {
-      Object.keys(defaults).forEach(category => {
-        if (stored[category] && typeof stored[category] === 'object') {
-          merged[category as keyof GameSettings] = {
-            ...defaults[category as keyof GameSettings],
-            ...stored[category]
-          } as any
-        }
-      })
+  private mergeSettings(defaults: GameSettings, stored: unknown): GameSettings {
+    if (!this.isValidSettingsObject(stored)) {
+      return defaults
     }
+
+    return {
+      audio: this.mergeAudioSettings(defaults.audio, stored.audio),
+      gameplay: this.mergeGameplaySettings(defaults.gameplay, stored.gameplay)
+    }
+  }
+
+  private isValidSettingsObject(obj: unknown): obj is Partial<GameSettings> {
+    return obj != null && 
+           typeof obj === 'object' && 
+           !Array.isArray(obj)
+  }
+
+  private mergeAudioSettings(
+    defaults: GameSettings['audio'], 
+    stored: unknown
+  ): GameSettings['audio'] {
+    if (!this.isPartialAudioSettings(stored)) {
+      return defaults
+    }
+
+    return {
+      enabled: stored.enabled ?? defaults.enabled,
+      masterVolume: this.clampVolume(stored.masterVolume ?? defaults.masterVolume)
+    }
+  }
+
+  private mergeGameplaySettings(
+    defaults: GameSettings['gameplay'], 
+    stored: unknown
+  ): GameSettings['gameplay'] {
+    if (!this.isPartialGameplaySettings(stored)) {
+      return defaults
+    }
+
+    return {
+      showTimer: stored.showTimer ?? defaults.showTimer,
+      showMineCount: stored.showMineCount ?? defaults.showMineCount,
+      firstClickSafe: stored.firstClickSafe ?? defaults.firstClickSafe
+    }
+  }
+
+  private isPartialAudioSettings(obj: unknown): obj is Partial<GameSettings['audio']> {
+    if (typeof obj !== 'object' || obj === null) return false
+    const settings = obj as Record<string, unknown>
     
-    return merged
+    return (settings.enabled === undefined || typeof settings.enabled === 'boolean') &&
+           (settings.masterVolume === undefined || typeof settings.masterVolume === 'number')
+  }
+
+  private isPartialGameplaySettings(obj: unknown): obj is Partial<GameSettings['gameplay']> {
+    if (typeof obj !== 'object' || obj === null) return false
+    const settings = obj as Record<string, unknown>
+    
+    return (settings.showTimer === undefined || typeof settings.showTimer === 'boolean') &&
+           (settings.showMineCount === undefined || typeof settings.showMineCount === 'boolean') &&
+           (settings.firstClickSafe === undefined || typeof settings.firstClickSafe === 'boolean')
+  }
+
+  private clampVolume(volume: number): number {
+    return Math.max(0, Math.min(1, volume))
   }
 
   private validateSettings(): void {

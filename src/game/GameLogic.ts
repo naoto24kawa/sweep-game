@@ -159,38 +159,13 @@ export class GameLogic {
   }
 
   public toggleFlag(x: number, y: number): boolean {
-    console.log(`toggleFlag called for (${x}, ${y}), gameState: ${this.gameState}`)
-    
-    if (!this.isValidCell(x, y) || (this.gameState !== GameState.ACTIVE && this.gameState !== GameState.READY)) {
-      console.log(`toggleFlag failed: invalid cell or wrong game state`)
+    if (!this.isValidCellForFlagging(x, y)) {
       return false
     }
 
     const cell = this.cells[y][x]
-    console.log(`toggleFlag cell state before: ${cell.state}`)
+    this.performCellStateTransition(cell)
     
-    if (cell.state === CellState.REVEALED) {
-      console.log(`toggleFlag failed: cell already revealed`)
-      return false
-    }
-
-    switch (cell.state) {
-      case CellState.HIDDEN:
-        cell.state = CellState.FLAGGED
-        this.stats.flagsUsed++
-        console.log(`Cell flagged, new state: ${cell.state}`)
-        break
-      case CellState.FLAGGED:
-        cell.state = CellState.QUESTIONED
-        this.stats.flagsUsed--
-        console.log(`Cell questioned, new state: ${cell.state}`)
-        break
-      case CellState.QUESTIONED:
-        cell.state = CellState.HIDDEN
-        console.log(`Cell hidden, new state: ${cell.state}`)
-        break
-    }
-
     return true
   }
 
@@ -212,6 +187,28 @@ export class GameLogic {
 
   public getCells(): Cell[][] {
     return this.cells
+  }
+
+  private isValidCellForFlagging(x: number, y: number): boolean {
+    return this.isValidCell(x, y) && 
+           (this.gameState === GameState.ACTIVE || this.gameState === GameState.READY) &&
+           this.cells[y][x].state !== CellState.REVEALED
+  }
+
+  private performCellStateTransition(cell: Cell): void {
+    switch (cell.state) {
+      case CellState.HIDDEN:
+        cell.state = CellState.FLAGGED
+        this.stats.flagsUsed++
+        break
+      case CellState.FLAGGED:
+        cell.state = CellState.QUESTIONED
+        this.stats.flagsUsed--
+        break
+      case CellState.QUESTIONED:
+        cell.state = CellState.HIDDEN
+        break
+    }
   }
 
   public getStats(): GameStats {
