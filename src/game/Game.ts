@@ -8,6 +8,7 @@ import { SoundManager } from '@/audio/SoundManager'
 import { StatsManager } from '@/stats/StatsManager'
 import { SettingsManager } from '@/settings/SettingsManager'
 import { PerformanceMonitor } from '@/performance/PerformanceMonitor'
+import { LevelSelector } from '@/ui/LevelSelector'
 import { Difficulty, DIFFICULTY_CONFIGS } from '@/types'
 
 export class Game {
@@ -21,10 +22,14 @@ export class Game {
   private statsManager: StatsManager
   private settingsManager: SettingsManager
   private performanceMonitor: PerformanceMonitor
+  private levelSelector!: LevelSelector
   private container: HTMLElement
+  private currentDifficulty: Difficulty
+  private isInitialized = false
 
   constructor(container: HTMLElement, difficulty: Difficulty = Difficulty.NOVICE) {
     this.container = container
+    this.currentDifficulty = difficulty
     const config = DIFFICULTY_CONFIGS[difficulty]
     
     this.domHandler = new DOMHandler(container)
@@ -43,12 +48,20 @@ export class Game {
     
     await this.initializeRenderer()
     await this.initializeUI()
+    this.initializeLevelSelector()
     this.initializeEventHandlers()
     this.initializeGameStateWatcher()
     this.applySettings()
     this.finalizeInitialization()
     
+    this.isInitialized = true
     console.log('Game initialization complete')
+    
+    // 少し遅延してからレベル選択画面を表示
+    setTimeout(() => {
+      console.log('🎯 About to show level selector...')
+      this.showLevelSelector()
+    }, 100)
   }
 
   private async initializeRenderer(): Promise<void> {
@@ -68,8 +81,24 @@ export class Game {
     this.gameUI = new GameUI(stage, this.gameLogic, this.statsManager, this.settingsManager)
   }
 
+  private initializeLevelSelector(): void {
+    console.log('Creating LevelSelector')
+    const stage = this.renderer.getApp().stage
+    const app = this.renderer.getApp()
+    this.levelSelector = new LevelSelector(stage, {
+      onLevelSelect: (difficulty: Difficulty) => this.handleLevelSelection(difficulty),
+      onClose: () => this.handleLevelSelectorClose(),
+      canvasWidth: app.screen.width,
+      canvasHeight: app.screen.height
+    })
+  }
+
   private initializeEventHandlers(): void {
-    this.eventManager = new EventManager(this.gameUI, () => this.restart())
+    this.eventManager = new EventManager(
+      this.gameUI, 
+      () => this.restart(),
+      () => this.showLevelSelector()
+    )
     this.eventManager.setupKeyboardControls()
   }
 
@@ -103,14 +132,40 @@ export class Game {
     this.renderer.updateDisplay()
   }
 
+  private handleLevelSelection(difficulty: Difficulty): void {
+    console.log('Level selected:', difficulty)
+    if (difficulty !== this.currentDifficulty) {
+      this.changeDifficulty(difficulty)
+    }
+  }
+
+  private handleLevelSelectorClose(): void {
+    console.log('Level selector closed')
+    // レベルが選択されていない場合のデフォルトの動作は特に設定しない
+  }
+
+  public showLevelSelector(): void {
+    if (this.levelSelector && this.isInitialized) {
+      this.levelSelector.show()
+    }
+  }
+
   public async changeDifficulty(difficulty: Difficulty): Promise<void> {
+    console.log('Changing difficulty to:', difficulty)
+    this.currentDifficulty = difficulty
     await this.cleanupCurrentGame()
     await this.initializeWithDifficulty(difficulty)
   }
 
   private async cleanupCurrentGame(): Promise<void> {
+    if (this.gameStateWatcher) {
+      this.gameStateWatcher.stopWatching()
+    }
     this.renderer.destroy()
     this.gameUI.destroy()
+    if (this.levelSelector) {
+      this.levelSelector.destroy()
+    }
     this.domHandler.clearContainer()
   }
 
@@ -121,6 +176,9 @@ export class Game {
     
     await this.initializeRenderer()
     await this.initializeUI()
+    this.initializeLevelSelector()
+    this.initializeGameStateWatcher()
+    this.finalizeInitialization()
   }
 
   public getGameLogic(): GameLogic {
@@ -140,8 +198,14 @@ export class Game {
   }
 
   public destroy(): void {
+    if (this.gameStateWatcher) {
+      this.gameStateWatcher.stopWatching()
+    }
     this.renderer.destroy()
     this.gameUI.destroy()
+    if (this.levelSelector) {
+      this.levelSelector.destroy()
+    }
     this.soundManager.destroy()
     this.performanceMonitor.stop()
     

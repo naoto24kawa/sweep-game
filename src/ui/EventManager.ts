@@ -3,10 +3,12 @@ import type { GameUI } from './GameUI'
 export class EventManager {
   private gameUI: GameUI
   private restartFunction: () => void
+  private showLevelSelectorFunction?: () => void
 
-  constructor(gameUI: GameUI, restartFunction: () => void) {
+  constructor(gameUI: GameUI, restartFunction: () => void, showLevelSelectorFunction?: () => void) {
     this.gameUI = gameUI
     this.restartFunction = restartFunction
+    this.showLevelSelectorFunction = showLevelSelectorFunction
   }
 
   setupKeyboardControls(): void {
@@ -23,6 +25,14 @@ export class EventManager {
           if (event.ctrlKey || event.metaKey) {
             event.preventDefault()
             this.gameUI.toggleStatsPanel()
+          }
+          break
+        case 'KeyL':
+          if (event.ctrlKey || event.metaKey) {
+            event.preventDefault()
+            if (this.showLevelSelectorFunction) {
+              this.showLevelSelectorFunction()
+            }
           }
           break
       }
