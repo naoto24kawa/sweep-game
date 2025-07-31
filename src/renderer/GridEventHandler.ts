@@ -12,6 +12,11 @@ import { SoundManager, SoundType } from '@/audio/SoundManager'
 export class GridEventHandler {
   private readonly cellSize = RENDER_CONSTANTS.CELL.SIZE
   private readonly cellSpacing = RENDER_CONSTANTS.CELL.SPACING
+  private readonly LONG_PRESS_DURATION = 500 // 長押し判定時間（ミリ秒）
+
+  private longPressTimer: number | null = null
+  private isLongPress = false
+  private longPressTarget: CellClickInfo | null = null
 
   constructor(
     private gameLogic: GameLogic,
@@ -53,7 +58,9 @@ export class GridEventHandler {
    * @param gridContainer PIXIグリッドコンテナ
    */
   private registerClickHandlers(gridContainer: PIXI.Container): void {
-    gridContainer.on('pointerdown', this.handleCellClick.bind(this))
+    gridContainer.on('pointerdown', this.handlePointerDown.bind(this))
+    gridContainer.on('pointerup', this.handlePointerUp.bind(this))
+    gridContainer.on('pointercancel', this.handlePointerCancel.bind(this))
   }
 
   /**
@@ -76,18 +83,79 @@ export class GridEventHandler {
   }
 
   /**
-   * セルクリックイベントを処理
+   * ポインターダウンイベントを処理（長押し検出開始）
    * @param event PIXIポインターイベント
    */
-  private handleCellClick(event: PIXI.FederatedPointerEvent): void {
+  private handlePointerDown(event: PIXI.FederatedPointerEvent): void {
     const cellInfo = this.extractCellInfoFromEvent(event)
     if (!cellInfo) return
 
+    this.isLongPress = false
+    this.longPressTarget = cellInfo
+
+    // 長押しタイマーを開始
+    this.longPressTimer = window.setTimeout(() => {
+      this.isLongPress = true
+      this.handleLongPress(cellInfo)
+    }, this.LONG_PRESS_DURATION)
+  }
+
+  /**
+   * ポインターアップイベントを処理
+   * @param event PIXIポインターイベント
+   */
+  private handlePointerUp(event: PIXI.FederatedPointerEvent): void {
+    this.clearLongPressTimer()
+
+    // 長押しでない場合のみ通常のクリック処理
+    if (!this.isLongPress && this.longPressTarget) {
+      this.handleNormalClick(event, this.longPressTarget)
+    }
+
+    this.longPressTarget = null
+  }
+
+  /**
+   * ポインターキャンセルイベントを処理
+   * @param _event PIXIポインターイベント
+   */
+  private handlePointerCancel(_event: PIXI.FederatedPointerEvent): void {
+    this.clearLongPressTimer()
+    this.longPressTarget = null
+  }
+
+  /**
+   * 長押しタイマーをクリア
+   */
+  private clearLongPressTimer(): void {
+    if (this.longPressTimer) {
+      clearTimeout(this.longPressTimer)
+      this.longPressTimer = null
+    }
+  }
+
+  /**
+   * 長押し処理（フラッグ切り替え）
+   * @param cellInfo セル情報
+   */
+  private handleLongPress(cellInfo: CellClickInfo): void {
+    const actionResult = this.processUserAction(2, cellInfo) // 右クリック相当として処理
+    if (actionResult.shouldPlayEffect) {
+      this.playInteractionEffects(actionResult, cellInfo)
+    }
+    this.onDisplayUpdate()
+  }
+
+  /**
+   * 通常クリック処理（セル開放）
+   * @param event PIXIポインターイベント
+   * @param cellInfo セル情報
+   */
+  private handleNormalClick(event: PIXI.FederatedPointerEvent, cellInfo: CellClickInfo): void {
     const actionResult = this.processUserAction(event.button, cellInfo)
     if (actionResult.shouldPlayEffect) {
       this.playInteractionEffects(actionResult, cellInfo)
     }
-    
     this.onDisplayUpdate()
   }
 
