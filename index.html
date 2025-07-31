@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SWEAP Game</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    :root {
+      --animation-duration: 0.3s;
+      --focus-outline: 2px solid #00ffff;
+      --high-contrast-bg: #000000;
+      --high-contrast-fg: #ffffff;
+    }
+    
+    body {
+      background: linear-gradient(135deg, #0d0d0d 0%, #1a1a1a 100%);
+      font-family: 'Courier New', monospace;
+      overflow: hidden;
+      touch-action: none;
+    }
+    
+    /* アクセシビリティ設定 */
+    .high-contrast {
+      background: var(--high-contrast-bg) !important;
+      color: var(--high-contrast-fg) !important;
+    }
+    
+    .larger-text {
+      font-size: 1.2em !important;
+    }
+    
+    .colorblind-mode canvas {
+      filter: contrast(1.2) brightness(1.1);
+    }
+    
+    /* モーション軽減 */
+    @media (prefers-reduced-motion: reduce) {
+      :root {
+        --animation-duration: 0s;
+      }
+      
+      * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+    
+    /* フォーカス管理 */
+    *:focus-visible {
+      outline: var(--focus-outline);
+      outline-offset: 2px;
+    }
+    
+    /* キーボードナビゲーション */
+    .keyboard-nav {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      color: #cccccc;
+      font-size: 12px;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 8px;
+      border-radius: 4px;
+      pointer-events: none;
+    }
+    
+    #app {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+    }
+    
+    canvas {
+      display: block;
+      box-shadow: 0 0 50px rgba(0, 255, 255, 0.3);
+      border-radius: 8px;
+      max-width: 100%;
+      max-height: 100%;
+    }
+    
+    /* レスポンシブデザイン */
+    @media (max-width: 768px) {
+      canvas {
+        max-width: 95vw;
+        max-height: 85vh;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      canvas {
+        max-width: 98vw;
+        max-height: 80vh;
+      }
+    }
+    
+    /* ハイコントラストモード */
+    @media (prefers-contrast: high) {
+      body {
+        background: #000000;
+      }
+      
+      canvas {
+        border: 2px solid #ffffff;
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="keyboard-nav">
+      F5: 再開 | Ctrl+S: 統計 | 左クリック: 開放 | 右クリック: フラグ
+    </div>
+  </div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
