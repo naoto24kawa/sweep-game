@@ -65,6 +65,14 @@ export class GameStatusDisplay {
   public updateTimer(timerText: PIXI.Text, currentTime: number): void {
     timerText.text = this.formatTime(currentTime)
   }
+
+  /**
+   * スコア表示を更新
+   */
+  public updateScore(scoreText: PIXI.Text): void {
+    const currentScore = this.gameLogic.getCurrentScore()
+    scoreText.text = `Score: ${currentScore.toLocaleString()}`
+  }
   
   /**
    * 統計パネルの全テキストを更新

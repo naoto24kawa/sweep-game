@@ -71,6 +71,15 @@ export class GameUILayout {
     const y = UI_CONSTANTS.HEADER.HEIGHT + 10
     return { x, y }
   }
+
+  /**
+   * スコア表示の位置を計算（グリッド左上、左端揃え）
+   */
+  public calculateScorePosition(_gameWidth: number): { x: number, y: number } {
+    const x = UI_CONSTANTS.SPACING.STANDARD // 左端から少し内側
+    const y = UI_CONSTANTS.HEADER.HEIGHT + UI_CONSTANTS.SPACING.SMALL // ヘッダー下
+    return { x, y }
+  }
   
   /**
    * 論理的なゲーム幅を取得（ブロック配置に基づく）

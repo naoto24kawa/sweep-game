@@ -13,6 +13,7 @@ export class HeaderUI {
   private timerText: PIXI.Text
   private mineCountText: PIXI.Text
   private statusText: PIXI.Text
+  private scoreText: PIXI.Text
 
   constructor(gameLogic: GameLogic) {
     this.container = new PIXI.Container()
@@ -21,6 +22,7 @@ export class HeaderUI {
     this.timerText = this.createText('00:00', LAYOUT_CONSTANTS.TEXT.TIMER_SIZE)
     this.mineCountText = this.createText('000', LAYOUT_CONSTANTS.TEXT.MINE_COUNT_SIZE)
     this.statusText = this.createText('READY', LAYOUT_CONSTANTS.TEXT.STATUS_SIZE)
+    this.scoreText = this.createText('Score: 0', LAYOUT_CONSTANTS.TEXT.STATS_SIZE + 2)
     
     this.setupHeader()
   }
@@ -87,6 +89,12 @@ export class HeaderUI {
     difficultyText.x = gameWidth / 2 - difficultyText.width / 2
     difficultyText.y = 45
     this.container.addChild(difficultyText)
+
+    // スコア表示
+    this.scoreText.style.fill = NEON_COLORS.accent.neonCyan
+    this.scoreText.x = LAYOUT_CONSTANTS.HEADER.MARGIN
+    this.scoreText.y = 45
+    this.container.addChild(this.scoreText)
   }
 
   private createMineIcon(): PIXI.Graphics {
@@ -124,6 +132,10 @@ export class HeaderUI {
 
   public updateStatus(status: string): void {
     this.statusText.text = status
+  }
+
+  public updateScore(score: number): void {
+    this.scoreText.text = `Score: ${score.toLocaleString()}`
   }
 
   public getContainer(): PIXI.Container {

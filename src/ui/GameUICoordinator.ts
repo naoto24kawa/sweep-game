@@ -1,5 +1,7 @@
 import { LevelSelector } from '@/ui/LevelSelector'
 import { StatsModal } from '@/ui/StatsModal'
+import { AchievementButton } from '@/ui/AchievementButton'
+import { AchievementModal } from '@/ui/AchievementModal'
 
 /**
  * UIモーダル表示の統合管理を行う専用クラス
@@ -8,6 +10,8 @@ import { StatsModal } from '@/ui/StatsModal'
 export class GameUICoordinator {
   private levelSelector: LevelSelector
   private statsModal: StatsModal
+  private achievementButton: AchievementButton | null = null
+  private achievementModal: AchievementModal | null = null
   private isInitialized: boolean = false
   
   constructor(levelSelector: LevelSelector, statsModal: StatsModal) {
@@ -45,6 +49,32 @@ export class GameUICoordinator {
       console.warn('GameUICoordinator: Cannot show stats modal - not initialized')
     }
   }
+
+  /**
+   * Achievement表示ボタンを設定
+   */
+  public setAchievementButton(achievementButton: AchievementButton): void {
+    this.achievementButton = achievementButton
+  }
+
+  /**
+   * AchievementModalを設定
+   */
+  public setAchievementModal(achievementModal: AchievementModal): void {
+    this.achievementModal = achievementModal
+  }
+
+  /**
+   * Achievement一覧を表示
+   */
+  public showAchievements(): void {
+    if (this.achievementModal && this.isInitialized) {
+      console.log('GameUICoordinator: Showing achievement modal')
+      this.achievementModal.show()
+    } else {
+      console.warn('GameUICoordinator: Cannot show achievement modal - not initialized')
+    }
+  }
   
   /**
    * 全てのモーダルを非表示にする
@@ -63,6 +93,12 @@ export class GameUICoordinator {
     }
     if (this.statsModal) {
       this.statsModal.destroy()
+    }
+    if (this.achievementButton) {
+      this.achievementButton.destroy()
+    }
+    if (this.achievementModal) {
+      this.achievementModal.destroy()
     }
     this.isInitialized = false
   }

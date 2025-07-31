@@ -134,10 +134,20 @@ export class StatsModal {
     resultText.y = contentY
     this.modalContainer.addChild(resultText)
 
+    // 現在のゲームスコア
+    const currentScoreText = this.createText(
+      `Score: ${gameStats.score.toLocaleString()}`,
+      fontSize + 2,
+      0x00ffff
+    )
+    currentScoreText.anchor.set(0.5)
+    currentScoreText.y = contentY + lineHeight
+    this.modalContainer.addChild(currentScoreText)
+
     // 統計情報（2列レイアウト）
     const leftColumn = -modalWidth / 4
     const rightColumn = modalWidth / 4
-    const currentY = contentY + lineHeight * 2
+    const currentY = contentY + lineHeight * 3
 
     // 左列
     const gamesText = this.createText(`Games: ${stats.totalGames}`, fontSize, 0xcccccc)
@@ -182,22 +192,38 @@ export class StatsModal {
     bestTimeText.y = currentY + lineHeight * 2
     this.modalContainer.addChild(bestTimeText)
 
-    // 実績情報（あれば）
-    if (stats.achievements.length > 0) {
-      const achievementText = this.createText('Recent Achievement:', fontSize - 2, 0xff9500)
-      achievementText.anchor.set(0.5)
-      achievementText.y = currentY + lineHeight * 4
-      this.modalContainer.addChild(achievementText)
+    // スコア情報行を追加
+    const bestScoreText = this.createText(
+      `Best Score: ${stats.bestScore[config.difficulty].toLocaleString()}`,
+      fontSize,
+      0x00ffff
+    )
+    bestScoreText.anchor.set(0.5)
+    bestScoreText.x = leftColumn
+    bestScoreText.y = currentY + lineHeight * 3
+    this.modalContainer.addChild(bestScoreText)
 
-      const recentAchievement = this.createText(
-        this.statsManager.getAchievementName(stats.achievements[stats.achievements.length - 1]),
-        fontSize - 2,
-        0xff9500
-      )
-      recentAchievement.anchor.set(0.5)
-      recentAchievement.y = currentY + lineHeight * 5
-      this.modalContainer.addChild(recentAchievement)
-    }
+    const avgScoreText = this.createText(
+      `Avg Score: ${Math.round(stats.averageScore[config.difficulty]).toLocaleString()}`,
+      fontSize,
+      0x00ffff
+    )
+    avgScoreText.anchor.set(0.5)
+    avgScoreText.x = rightColumn
+    avgScoreText.y = currentY + lineHeight * 3
+    this.modalContainer.addChild(avgScoreText)
+
+    // コンボ情報
+    const comboText = this.createText(
+      `Combo: ${gameStats.comboCount} | Best: ${gameStats.bestCombo}`,
+      fontSize,
+      0xffff00
+    )
+    comboText.anchor.set(0.5)
+    comboText.x = 0
+    comboText.y = currentY + lineHeight * 4
+    this.modalContainer.addChild(comboText)
+
   }
 
   private createButtons(modalWidth: number, modalHeight: number): void {

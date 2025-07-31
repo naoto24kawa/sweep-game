@@ -26,6 +26,7 @@ export class GameUI {
   private timerText!: PIXI.Text
   private mineCountText!: PIXI.Text
   private statusText!: PIXI.Text
+  private scoreText!: PIXI.Text
   private statsPanel!: PIXI.Container
   private statsTexts: PIXI.Text[] = []
 
@@ -62,6 +63,7 @@ export class GameUI {
     this.timerText = this.renderer.createText('00:00', UI_CONSTANTS.TEXT.TIMER_FONT_SIZE)
     this.mineCountText = this.renderer.createText('000', UI_CONSTANTS.TEXT.TIMER_FONT_SIZE)
     this.statusText = this.renderer.createText('READY', UI_CONSTANTS.TEXT.STATUS_FONT_SIZE)
+    this.scoreText = this.renderer.createText('Score: 0', UI_CONSTANTS.TEXT.STATUS_FONT_SIZE - 2)
     this.statsPanel = this.renderer.createStatsPanel(this.layout.getEffectiveUIWidth())
     this.statsTexts = this.renderer.createStatsTexts()
     
@@ -119,6 +121,14 @@ export class GameUI {
     difficultyText.x = this.layout.centerElementX(difficultyText.width, effectiveWidth)
     difficultyText.y = UI_CONSTANTS.SPACING.LARGE
     this.container.addChild(difficultyText)
+
+    // スコア表示を独立した位置に配置（グリッド左上、左端揃え）
+    this.scoreText.style.fill = { color: 0x00ffff } // NEON_COLORS.accent.neonCyan
+    const scorePosition = this.layout.calculateScorePosition(effectiveWidth)
+    this.scoreText.anchor.set(0, 0) // 左端揃え
+    this.scoreText.x = scorePosition.x
+    this.scoreText.y = scorePosition.y
+    this.container.addChild(this.scoreText)
   }
 
   private setupStatsPanel(gameWidth: number): void {
@@ -138,6 +148,7 @@ export class GameUI {
     this.statusDisplay.updateTimer(this.timerText, time)
     this.statusDisplay.updateMineCount(this.mineCountText)
     this.statusDisplay.updateGameStatus(this.statusText)
+    this.statusDisplay.updateScore(this.scoreText)
     this.statusDisplay.updateStatsPanel(this.statsTexts)
   }
 

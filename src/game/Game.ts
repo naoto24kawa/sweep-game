@@ -39,6 +39,8 @@ export class Game {
       
       // UI管理システムを設定
       this.uiCoordinator = new GameUICoordinator(components.levelSelector, components.statsModal)
+      this.uiCoordinator.setAchievementButton(components.achievementButton)
+      this.uiCoordinator.setAchievementModal(components.achievementModal)
       
       // ライフサイクル管理システムを設定
       this.lifecycleManager = new GameLifecycleManager(

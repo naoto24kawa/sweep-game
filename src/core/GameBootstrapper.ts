@@ -10,6 +10,8 @@ import { SettingsManager } from '@/settings/SettingsManager'
 import { PerformanceMonitor } from '@/performance/PerformanceMonitor'
 import { LevelSelector } from '@/ui/LevelSelector'
 import { StatsModal } from '@/ui/StatsModal'
+import { AchievementButton } from '@/ui/AchievementButton'
+import { AchievementModal } from '@/ui/AchievementModal'
 import { Difficulty, DIFFICULTY_CONFIGS } from '@/types'
 
 /**
@@ -35,7 +37,9 @@ export class GameBootstrapper {
     settingsManager: SettingsManager,
     performanceMonitor: PerformanceMonitor,
     levelSelector: LevelSelector,
-    statsModal: StatsModal
+    statsModal: StatsModal,
+    achievementButton: AchievementButton,
+    achievementModal: AchievementModal
   }> {
     console.log('GameBootstrapper: Initializing game application')
     
@@ -126,11 +130,26 @@ export class GameBootstrapper {
       canvasWidth: app.screen.width,
       canvasHeight: app.screen.height
     })
+
+    const achievementModal = new AchievementModal(stage, services.statsManager, {
+      onClose: () => {},
+      canvasWidth: app.screen.width,
+      canvasHeight: app.screen.height
+    })
+
+    const achievementButton = new AchievementButton(stage, services.statsManager, {
+      onAchievementClick: () => {
+        console.log('Achievement button clicked')
+        achievementModal.show()
+      }
+    })
     
     return {
       gameUI,
       levelSelector,
-      statsModal
+      statsModal,
+      achievementButton,
+      achievementModal
     }
   }
   
