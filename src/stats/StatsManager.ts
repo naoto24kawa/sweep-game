@@ -1,18 +1,4 @@
-import { Difficulty } from '@/types'
-
-export interface GameResult {
-  id: string
-  difficulty: Difficulty
-  startTime: number
-  endTime: number
-  duration: number
-  success: boolean
-  cellsRevealed: number
-  flagsUsed: number
-  gridSize: { width: number; height: number }
-  mines: number
-  timestamp: number
-}
+import { Difficulty, GameResult } from '@/types'
 
 export interface PlayerStats {
   totalGames: number

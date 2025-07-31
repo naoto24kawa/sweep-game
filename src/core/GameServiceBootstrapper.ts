@@ -1,6 +1,6 @@
 import { ServiceContainer, ServiceKeys } from './ServiceContainer'
 import { GameLogic } from '@/game/GameLogic'
-import { GameRendererRefactored } from '@/renderer/GameRendererRefactored'
+import { GameRenderer } from '@/renderer/GameRenderer'
 import { SoundManager } from '@/audio/SoundManager'
 import { StatsManager } from '@/stats/StatsManager'
 import { SettingsManager } from '@/settings/SettingsManager'
@@ -58,7 +58,7 @@ export class GameServiceBootstrapper {
     this.container.registerSingleton(ServiceKeys.GAME_RENDERER, () => {
       const gameLogic = this.container.resolve<GameLogic>(ServiceKeys.GAME_LOGIC)
       const soundManager = this.container.resolve<SoundManager>(ServiceKeys.SOUND_MANAGER)
-      return new GameRendererRefactored(gameLogic, soundManager)
+      return new GameRenderer(gameLogic, soundManager)
     })
   }
 
@@ -107,7 +107,7 @@ export class GameServiceBootstrapper {
       this.container.resolve<GameLogic>(ServiceKeys.GAME_LOGIC)
       
       // レンダラーを初期化（非同期）
-      const gameRenderer = this.container.resolve<GameRendererRefactored>(ServiceKeys.GAME_RENDERER)
+      const gameRenderer = this.container.resolve<GameRenderer>(ServiceKeys.GAME_RENDERER)
       await gameRenderer.waitForReady()
       
       // 統計管理を初期化
@@ -135,7 +135,7 @@ export class GameServiceBootstrapper {
         issues.push('GameLogic configuration is invalid')
       }
       
-      const gameRenderer = this.container.resolve<GameRendererRefactored>(ServiceKeys.GAME_RENDERER)
+      const gameRenderer = this.container.resolve<GameRenderer>(ServiceKeys.GAME_RENDERER)
       if (!gameRenderer.isReady()) {
         issues.push('GameRenderer is not ready')
       }
@@ -161,7 +161,7 @@ export class GameServiceBootstrapper {
   public destroy(): void {
     try {
       // 各サービスの破棄処理を実行
-      const gameRenderer = this.container.resolve<GameRendererRefactored>(ServiceKeys.GAME_RENDERER)
+      const gameRenderer = this.container.resolve<GameRenderer>(ServiceKeys.GAME_RENDERER)
       gameRenderer.destroy()
       
       // パフォーマンス監視を停止

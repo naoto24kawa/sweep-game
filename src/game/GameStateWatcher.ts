@@ -2,13 +2,13 @@ import { GameState } from '@/types'
 import type { GameLogic } from './GameLogic'
 import type { SoundManager, SoundType } from '@/audio/SoundManager'
 import type { StatsManager } from '@/stats/StatsManager'
-import type { GameRendererRefactored } from '@/renderer/GameRendererRefactored'
+import type { GameRenderer } from '@/renderer/GameRenderer'
 
 export class GameStateWatcher {
   private gameLogic: GameLogic
   private soundManager: SoundManager
   private statsManager: StatsManager
-  private renderer: GameRendererRefactored | null
+  private renderer: GameRenderer | null
   private lastGameState: GameState
   private intervalId: number | null = null
 
@@ -16,7 +16,7 @@ export class GameStateWatcher {
     gameLogic: GameLogic,
     soundManager: SoundManager,
     statsManager: StatsManager,
-    renderer?: GameRendererRefactored
+    renderer?: GameRenderer
   ) {
     this.gameLogic = gameLogic
     this.soundManager = soundManager

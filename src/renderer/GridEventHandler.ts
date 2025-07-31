@@ -209,7 +209,7 @@ export class GridEventHandler {
 
   /**
    * セルホバーイベントを処理
-   * @param _event PIXIポインターイベント
+   * @param _event PIXIポインターイベント（未使用）
    */
   private handleCellHover(_event: PIXI.FederatedPointerEvent): void {
     // ホバーエフェクトを完全に無効化
@@ -218,7 +218,7 @@ export class GridEventHandler {
 
   /**
    * セルアウトイベントを処理
-   * @param _event PIXIポインターイベント
+   * @param _event PIXIポインターイベント（未使用）
    */
   private handleCellOut(_event: PIXI.FederatedPointerEvent): void {
     // ホバーエフェクトを完全に無効化

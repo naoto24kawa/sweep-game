@@ -28,4 +28,8 @@ export class DOMHandler {
     this.container.appendChild(canvas)
     console.log('Canvas appended to container:', this.container)
   }
+
+  clearContainer(): void {
+    this.container.innerHTML = ''
+  }
 }

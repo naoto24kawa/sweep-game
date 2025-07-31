@@ -44,6 +44,20 @@ export interface GameStats {
   cellsRevealed: number
 }
 
+export interface GameResult {
+  id: string
+  difficulty: Difficulty
+  startTime: number
+  endTime: number
+  duration: number
+  success: boolean
+  cellsRevealed: number
+  flagsUsed: number
+  gridSize: { width: number; height: number }
+  mines: number
+  timestamp: number
+}
+
 export const DIFFICULTY_CONFIGS: Record<Difficulty, GameConfig> = {
   [Difficulty.NOVICE]: { width: 9, height: 9, mines: 10, difficulty: Difficulty.NOVICE },
   [Difficulty.AGENT]: { width: 16, height: 16, mines: 40, difficulty: Difficulty.AGENT },
@@ -99,6 +113,34 @@ export const RENDER_CONSTANTS = {
     PULSE_DURATION: 2000,
     SHAKE_INTENSITY: 15,
     SHAKE_DURATION: 500
+  }
+} as const
+
+export const LAYOUT_CONSTANTS = {
+  HEADER: {
+    HEIGHT: 80,
+    BACKGROUND_RADIUS: 8,
+    BACKGROUND_ALPHA: 0.9,
+    BORDER_WIDTH: 2,
+    BORDER_ALPHA: 0.5,
+    MARGIN: 20
+  },
+  GRID: {
+    Y_POSITION: 120,
+    MARGIN: 20
+  },
+  STATS: {
+    PANEL_HEIGHT: 180,
+    MARGIN: 40,
+    PANEL_WIDTH: 300
+  },
+  TEXT: {
+    FONT_FAMILY: 'Courier New, monospace',
+    TIMER_SIZE: 24,
+    MINE_COUNT_SIZE: 24,
+    STATUS_SIZE: 20,
+    DIFFICULTY_SIZE: 16,
+    STATS_SIZE: 14
   }
 } as const
 

@@ -12,9 +12,9 @@ export interface Achievement {
 }
 
 /**
- * ゲーム結果インターフェース
+ * 実績チェック用の簡略ゲーム結果
  */
-export interface GameResult {
+export interface AchievementGameResult {
   won: boolean
   time: number
   difficulty: Difficulty
@@ -65,14 +65,14 @@ export class AchievementManager {
     }
   ]
 
-  private gameHistory: GameResult[] = []
+  private gameHistory: AchievementGameResult[] = []
 
   /**
    * ゲーム結果から実績をチェック
    * @param result ゲーム結果
    * @returns 新たに獲得した実績
    */
-  public checkAchievements(result: GameResult): Achievement[] {
+  public checkAchievements(result: AchievementGameResult): Achievement[] {
     const newAchievements: Achievement[] = []
     
     if (result.won) {
@@ -100,7 +100,7 @@ export class AchievementManager {
    * @param result ゲーム結果
    * @returns 獲得した実績またはnull
    */
-  private checkSpeedAchievements(result: GameResult): Achievement | null {
+  private checkSpeedAchievements(result: AchievementGameResult): Achievement | null {
     const timeInSeconds = result.time / 1000
 
     switch (result.difficulty) {
@@ -209,7 +209,7 @@ export class AchievementManager {
    * データを復元
    * @param data 保存データ
    */
-  public restore(data: { achievements: Achievement[], gameHistory: GameResult[] }): void {
+  public restore(data: { achievements: Achievement[], gameHistory: AchievementGameResult[] }): void {
     if (data.achievements) {
       this.achievements = data.achievements
     }
@@ -222,7 +222,7 @@ export class AchievementManager {
    * データを取得
    * @returns 保存用データ
    */
-  public getData(): { achievements: Achievement[], gameHistory: GameResult[] } {
+  public getData(): { achievements: Achievement[], gameHistory: AchievementGameResult[] } {
     return {
       achievements: this.achievements,
       gameHistory: this.gameHistory

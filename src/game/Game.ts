@@ -1,5 +1,5 @@
 import { GameLogic } from '@/game/GameLogic'
-import { GameRendererRefactored as GameRenderer } from '@/renderer/GameRendererRefactored'
+import { GameRenderer } from '@/renderer/GameRenderer'
 import { GameUI } from '@/ui/GameUI'
 import { DOMHandler } from '@/ui/DOMHandler'
 import { EventManager } from '@/ui/EventManager'
@@ -40,30 +40,52 @@ export class Game {
 
   private async initializeAsync(): Promise<void> {
     console.log('Game initializeAsync start')
-    // RendererのPixiJS初期化を待つ
-    await this.renderer.waitForReady()
     
-    console.log('Renderer ready, creating GameUI')
+    await this.initializeRenderer()
+    await this.initializeUI()
+    this.initializeEventHandlers()
+    this.initializeGameStateWatcher()
+    this.applySettings()
+    this.finalizeInitialization()
+    
+    console.log('Game initialization complete')
+  }
+
+  private async initializeRenderer(): Promise<void> {
+    await this.renderer.waitForReady()
+    console.log('Renderer ready')
+    
     const canvas = this.renderer.getCanvas()
     console.log('🖼️ Canvas size:', { width: canvas.width, height: canvas.height })
     console.log('🎬 Stage size:', { width: this.renderer.getApp().screen.width, height: this.renderer.getApp().screen.height })
     
-    this.gameUI = new GameUI(this.renderer.getApp().stage, this.gameLogic, this.statsManager, this.settingsManager)
-    
-    this.domHandler.setupCanvas(this.renderer.getCanvas())
-    
+    this.domHandler.setupCanvas(canvas)
+  }
+
+  private async initializeUI(): Promise<void> {
+    console.log('Creating GameUI')
+    const stage = this.renderer.getApp().stage
+    this.gameUI = new GameUI(stage, this.gameLogic, this.statsManager, this.settingsManager)
+  }
+
+  private initializeEventHandlers(): void {
     this.eventManager = new EventManager(this.gameUI, () => this.restart())
     this.eventManager.setupKeyboardControls()
-    
-    this.gameStateWatcher = new GameStateWatcher(this.gameLogic, this.soundManager, this.statsManager, this.renderer)
+  }
+
+  private initializeGameStateWatcher(): void {
+    this.gameStateWatcher = new GameStateWatcher(
+      this.gameLogic, 
+      this.soundManager, 
+      this.statsManager, 
+      this.renderer
+    )
     this.gameStateWatcher.startWatching()
-    
-    this.applySettings()
-    
-    // イベントハンドラーを最後に設定
+  }
+
+  private finalizeInitialization(): void {
     console.log('Setting up renderer event handlers')
     this.renderer.setupEventHandlers()
-    console.log('Game initialization complete')
   }
 
 
@@ -82,20 +104,23 @@ export class Game {
   }
 
   public async changeDifficulty(difficulty: Difficulty): Promise<void> {
+    await this.cleanupCurrentGame()
+    await this.initializeWithDifficulty(difficulty)
+  }
+
+  private async cleanupCurrentGame(): Promise<void> {
     this.renderer.destroy()
     this.gameUI.destroy()
-    this.container.innerHTML = ''
-    
+    this.domHandler.clearContainer()
+  }
+
+  private async initializeWithDifficulty(difficulty: Difficulty): Promise<void> {
     const config = DIFFICULTY_CONFIGS[difficulty]
     this.gameLogic = new GameLogic(config)
     this.renderer = new GameRenderer(this.gameLogic, this.soundManager)
     
-    // RendererのPixiJS初期化を待つ
-    await this.renderer.waitForReady()
-    
-    this.gameUI = new GameUI(this.renderer.getApp().stage, this.gameLogic, this.statsManager, this.settingsManager)
-    
-    this.domHandler.setupCanvas(this.renderer.getCanvas())
+    await this.initializeRenderer()
+    await this.initializeUI()
   }
 
   public getGameLogic(): GameLogic {
