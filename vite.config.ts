@@ -3,6 +3,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 import { resolve } from 'path'
 
 export default defineConfig({
+  base: '/sweep-game/',
   plugins: [
     VitePWA({
       registerType: 'autoUpdate',
