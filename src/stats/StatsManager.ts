@@ -39,7 +39,7 @@ export interface PlayerStats {
 }
 
 export class StatsManager {
-  private readonly STORAGE_KEY = 'sweap-game-stats'
+  private readonly STORAGE_KEY = 'sweep-game-stats'
   private readonly MAX_RECENT_GAMES = 50
   private stats: PlayerStats
 

@@ -11,7 +11,7 @@ export interface GameSettings {
 }
 
 export class SettingsManager {
-  private readonly STORAGE_KEY = 'sweap-game-settings'
+  private readonly STORAGE_KEY = 'sweep-game-settings'
   private settings: GameSettings
   private listeners: Map<string, ((settings: GameSettings) => void)[]> = new Map()
 

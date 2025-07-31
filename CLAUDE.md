@@ -19,7 +19,7 @@ npm run lint        # ESLint with TypeScript support
 
 ## Architecture Overview
 
-SWEAP Gameは近未来的なサイバーパンクテーマのマインスイーパーゲームです。TypeScript + PixiJS + PWAで構築された高性能な60FPS Web ゲームです。
+SWEEP Gameは近未来的なサイバーパンクテーマのマインスイーパーゲームです。TypeScript + PixiJS + PWAで構築された高性能な60FPS Web ゲームです。
 
 ### Core Architecture Pattern
 

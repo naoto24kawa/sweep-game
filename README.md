@@ -1,10 +1,10 @@
-# SWEAP Game 🎮
+# SWEEP Game 🎮
 
 サイバーパンク風マインスイーパーゲーム
 
 ## 概要
 
-SWEAPは従来のマインスイーパーをベースに、サイバーパンクテーマとネオンカラーで視覚的に強化したWebゲームです。TypeScript + PixiJS + PWAで高性能な60FPSゲーム体験を提供します。
+SWEEPは従来のマインスイーパーをベースに、サイバーパンクテーマとネオンカラーで視覚的に強化したWebゲームです。TypeScript + PixiJS + PWAで高性能な60FPSゲーム体験を提供します。
 
 ## 🎯 ゲーム仕様
 
@@ -97,7 +97,7 @@ npm run lint
 ## 📁 プロジェクト構造
 
 ```
-sweap-game/
+sweep-game/
 ├── __docs__/                    # 設計仕様書
 │   ├── DEV_SPECS.md            # 開発仕様書
 │   └── SPECIFICATION.md        # プロジェクト仕様書

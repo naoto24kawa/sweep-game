@@ -3,7 +3,7 @@
  * LocalStorageとの入出力処理のみを担当
  */
 export class StatsRepository {
-  private readonly STORAGE_KEY = 'sweap-game-stats'
+  private readonly STORAGE_KEY = 'sweep-game-stats'
 
   /**
    * 統計データをLocalStorageから読み込み

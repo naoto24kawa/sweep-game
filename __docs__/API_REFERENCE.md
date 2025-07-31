@@ -1,4 +1,4 @@
-# SWEAP Game - API リファレンス
+# SWEEP Game - API リファレンス
 
 ## 目次
 - [Game](#game-class)

@@ -37,7 +37,7 @@ function setupGameGlobals(game: Game): void {
 }
 
 function logGameInstructions(): void {
-  console.log('🎮 SWEAP Game initialized successfully')
+  console.log('🎮 SWEEP Game initialized successfully')
   console.log('📋 Controls:')
   console.log('  • Left click: Reveal cell')
   console.log('  • Right click: Toggle flag')
@@ -66,7 +66,7 @@ function handleGameInitializationFailure(error: unknown): void {
         color: #ff0040;
         text-align: center;
       ">
-        <h1 style="color: #00ffff; margin-bottom: 20px;">⚠️ SWEAP Game Error</h1>
+        <h1 style="color: #00ffff; margin-bottom: 20px;">⚠️ SWEEP Game Error</h1>
         <p style="margin-bottom: 10px;">Failed to initialize game: ${errorMessage}</p>
         <p style="color: #cccccc; font-size: 14px;">Error Code: ${errorCode}</p>
         <button 

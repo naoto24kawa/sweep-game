@@ -11,8 +11,8 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024 // 5MB
       },
       manifest: {
-        name: 'SWEAP Game',
-        short_name: 'SWEAP',
+        name: 'SWEEP Game',
+        short_name: 'SWEEP',
         description: 'サイバーパンク風マインスイーパーゲーム',
         theme_color: '#00ffff',
         background_color: '#0d0d0d',
