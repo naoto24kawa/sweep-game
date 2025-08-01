@@ -33,7 +33,6 @@ export class LevelSelector {
     this.container.zIndex = 1000
     this.stage.sortableChildren = true
     
-    console.log('🎮 LevelSelector created and added to stage with zIndex:', this.container.zIndex)
   }
 
   private setupUI(): void {
@@ -41,25 +40,30 @@ export class LevelSelector {
     const canvasWidth = this.options.canvasWidth || 800
     const canvasHeight = this.options.canvasHeight || 600
     
-    console.log('📐 Canvas size for LevelSelector:', { canvasWidth, canvasHeight })
 
     // オーバーレイ（背景）
     this.overlay
       .rect(0, 0, canvasWidth, canvasHeight)
       .fill({ color: 0x000000, alpha: 0.8 })
     this.overlay.eventMode = 'static'
-    this.overlay.on('pointerdown', () => this.hide())
+    this.overlay.on('pointerdown', (event: PIXI.FederatedPointerEvent) => {
+      event.stopPropagation()
+      this.hide()
+    })
     this.container.addChild(this.overlay)
 
     // モーダルコンテナ
     this.modalContainer.x = canvasWidth / 2
     this.modalContainer.y = canvasHeight / 2
+    this.modalContainer.eventMode = 'static'
+    this.modalContainer.on('pointerdown', (event: PIXI.FederatedPointerEvent) => {
+      event.stopPropagation()
+    })
     this.container.addChild(this.modalContainer)
+    
 
     this.createModal()
     this.container.visible = false
-    
-    console.log('✅ LevelSelector UI setup complete')
   }
 
   private createModal(): void {
@@ -75,12 +79,6 @@ export class LevelSelector {
     const modalWidth = Math.max(250, maxModalWidth)
     const modalHeight = Math.max(200, maxModalHeight)
     
-    console.log('📐 Modal size calculated:', { 
-      modalWidth, 
-      modalHeight, 
-      canvasWidth, 
-      canvasHeight 
-    })
     
     // モーダル背景
     const modalBg = new PIXI.Graphics()
@@ -126,9 +124,15 @@ export class LevelSelector {
       }
     ]
 
-    // ボタン間隔をモーダルサイズに応じて調整
-    const buttonSpacing = Math.min(80, modalHeight / 5)
-    const startY = Math.min(-50, -modalHeight / 4)
+    // ボタン配置を正しく計算
+    const titleHeight = 40 // タイトル用のスペース
+    const margin = 40 // 上下のマージン
+    const availableSpace = modalHeight - titleHeight - margin
+    
+    // 3つのボタンが均等に配置されるよう計算
+    const buttonSpacing = availableSpace / levels.length
+    const startY = -modalHeight / 2 + titleHeight + buttonSpacing / 2
+    
 
     levels.forEach((level, index) => {
       const button = this.createLevelButton(level, modalWidth, modalHeight)
@@ -145,6 +149,7 @@ export class LevelSelector {
     const buttonContainer = new PIXI.Container()
     const buttonWidth = modalWidth - Math.min(80, modalWidth * 0.2)
     const buttonHeight = Math.min(60, modalHeight / 6)
+    
 
     // ボタン背景
     const buttonBg = new PIXI.Graphics()
@@ -158,6 +163,7 @@ export class LevelSelector {
     
     // ホバーエフェクト
     buttonBg.on('pointerover', () => {
+      console.log('🏃 Button hover:', level.difficulty)
       buttonBg.clear()
       buttonBg
         .roundRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 8)
@@ -166,6 +172,7 @@ export class LevelSelector {
     })
     
     buttonBg.on('pointerout', () => {
+      console.log('👋 Button leave:', level.difficulty)
       buttonBg.clear()
       buttonBg
         .roundRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 8)
@@ -173,23 +180,48 @@ export class LevelSelector {
         .stroke({ width: 2, color: level.color, alpha: 0.6 })
     })
 
-    buttonBg.on('pointerdown', () => {
+    // 複数のイベントタイプでクリックを処理
+    buttonBg.on('pointerdown', (event: PIXI.FederatedPointerEvent) => {
+      console.log('🎯 Button POINTERDOWN:', level.difficulty, 'Position:', {x: event.global.x, y: event.global.y})
+      event.stopPropagation()
+      event.preventDefault()
       this.selectLevel(level.difficulty)
+    })
+    
+    buttonBg.on('pointerup', (event: PIXI.FederatedPointerEvent) => {
+      console.log('🎯 Button POINTERUP:', level.difficulty)
+      event.stopPropagation()
+    })
+    
+    buttonBg.on('click', (event: PIXI.FederatedPointerEvent) => {
+      console.log('🎯 Button CLICK:', level.difficulty)
+      event.stopPropagation()
     })
 
     buttonContainer.addChild(buttonBg)
+    
+    console.log(`🔲 Button ${level.difficulty} setup:`, {
+      buttonWidth,
+      buttonHeight,
+      eventMode: buttonBg.eventMode,
+      cursor: buttonBg.cursor,
+      interactive: buttonBg.interactive,
+      bounds: buttonBg.getBounds()
+    })
 
     // レベル名（ボタンサイズに応じてフォントサイズを調整）
     const levelNameFontSize = Math.min(18, buttonHeight / 3)
     const levelName = this.createText(level.name, levelNameFontSize, level.color)
     levelName.anchor.set(0.5)
     levelName.y = -buttonHeight / 4
+    levelName.eventMode = 'none' // テキストがクリックを妨害しないように
     buttonContainer.addChild(levelName)
 
     // 説明文（ボタンサイズに応じてフォントサイズを調整）
     const descriptionFontSize = Math.min(12, buttonHeight / 5)
     const description = this.createText(level.description, descriptionFontSize, 0xcccccc)
     description.anchor.set(0.5)
+    description.eventMode = 'none' // テキストがクリックを妨害しないように
     description.y = buttonHeight / 6
     buttonContainer.addChild(description)
 
@@ -210,7 +242,10 @@ export class LevelSelector {
       .fill({ color: 0xff0040, alpha: 0.8 })
     closeBg.eventMode = 'static'
     closeBg.cursor = 'pointer'
-    closeBg.on('pointerdown', () => this.hide())
+    closeBg.on('pointerdown', (event: PIXI.FederatedPointerEvent) => {
+      event.stopPropagation()
+      this.hide()
+    })
     
     const closeFontSize = Math.min(20, buttonSize * 1.3)
     const closeText = this.createText('×', closeFontSize, 0xffffff)
@@ -241,8 +276,13 @@ export class LevelSelector {
   }
 
   private selectLevel(difficulty: Difficulty): void {
+    // まずモーダルを非表示にしてクリックスルーを防ぐ
     this.hide()
-    this.options.onLevelSelect(difficulty)
+    
+    // その後でレベル変更のコールバックを実行
+    if (this.options.onLevelSelect) {
+      this.options.onLevelSelect(difficulty)
+    }
   }
 
   /**
@@ -260,14 +300,9 @@ export class LevelSelector {
   }
 
   public show(): void {
-    console.log('🎮 LevelSelector.show() called, current visible:', this.isVisible)
     if (!this.isVisible) {
       this.container.visible = true
       this.isVisible = true
-      
-      console.log('✅ LevelSelector is now visible')
-      console.log('📊 Container children:', this.container.children.length)
-      console.log('📦 Modal container position:', { x: this.modalContainer.x, y: this.modalContainer.y })
       
       // アニメーション（オプション）
       this.modalContainer.scale.set(0.8)
@@ -284,7 +319,6 @@ export class LevelSelector {
         } else {
           this.modalContainer.alpha = 1
           this.modalContainer.scale.set(1)
-          console.log('🎬 Fade-in animation complete')
         }
       }
       fadeIn()

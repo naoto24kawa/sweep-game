@@ -42,6 +42,7 @@ export class Game {
       this.uiCoordinator = new GameUICoordinator(components.levelSelector, components.statsModal)
       this.uiCoordinator.setAchievementButton(components.achievementButton)
       this.uiCoordinator.setAchievementModal(components.achievementModal)
+      this.uiCoordinator.setGridEventHandler(components.renderer.getEventHandler())
       
       // ライフサイクル管理システムを設定
       this.lifecycleManager = new GameLifecycleManager(
@@ -112,9 +113,11 @@ export class Game {
   }
 
   private handleLevelSelectorClose(): void {
+    this.uiCoordinator.hideLevelSelector()
   }
 
   private handleStatsModalClose(): void {
+    this.uiCoordinator.hideStatsModal()
   }
 
   private handleStatsModalRestart(): void {

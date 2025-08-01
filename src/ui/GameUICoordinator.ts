@@ -2,6 +2,7 @@ import { LevelSelector } from '@/ui/LevelSelector'
 import { StatsModal } from '@/ui/StatsModal'
 import { AchievementButton } from '@/ui/AchievementButton'
 import { AchievementModal } from '@/ui/AchievementModal'
+import { GridEventHandler } from '@/renderer/GridEventHandler'
 
 /**
  * UIモーダル表示の統合管理を行う専用クラス
@@ -12,6 +13,7 @@ export class GameUICoordinator {
   private statsModal: StatsModal
   private achievementButton: AchievementButton | null = null
   private achievementModal: AchievementModal | null = null
+  private gridEventHandler: GridEventHandler | null = null
   private isInitialized: boolean = false
   
   constructor(levelSelector: LevelSelector, statsModal: StatsModal) {
@@ -27,10 +29,23 @@ export class GameUICoordinator {
   }
   
   /**
+   * GridEventHandlerを設定
+   */
+  public setGridEventHandler(gridEventHandler: GridEventHandler): void {
+    console.log('🔗 Setting GridEventHandler in GameUICoordinator')
+    this.gridEventHandler = gridEventHandler
+    // 初期状態でモーダルは非アクティブに設定
+    this.gridEventHandler.setModalActive(false)
+  }
+
+  /**
    * レベル選択画面を表示
    */
   public showLevelSelector(): void {
     if (this.levelSelector && this.isInitialized) {
+      if (this.gridEventHandler) {
+        this.gridEventHandler.setModalActive(true)
+      }
       this.levelSelector.show()
     } else {
       console.warn('GameUICoordinator: Cannot show level selector - not initialized')
@@ -42,9 +57,38 @@ export class GameUICoordinator {
    */
   public showStatsModal(): void {
     if (this.statsModal && this.isInitialized) {
+      if (this.gridEventHandler) {
+        this.gridEventHandler.setModalActive(true)
+      }
       this.statsModal.show()
     } else {
       console.warn('GameUICoordinator: Cannot show stats modal - not initialized')
+    }
+  }
+
+  /**
+   * レベル選択画面を非表示
+   */
+  public hideLevelSelector(): void {
+    if (this.gridEventHandler) {
+      // レベル変更時は即座にモーダルを非アクティブにしてクリックスルーを防ぐ
+      console.log('⚡ Immediate modal deactivation for level selector')
+      this.gridEventHandler.setModalActive(false)
+      // さらに一時的にグリッドイベントを無効化してpointerupイベントもブロック
+      this.gridEventHandler.temporarilyDisableEvents()
+    }
+  }
+
+  /**
+   * 統計モーダルを非表示
+   */
+  public hideStatsModal(): void {
+    if (this.gridEventHandler) {
+      // より長い遅延で統計モーダル処理の完了を確実に待つ
+      setTimeout(() => {
+        console.log('🕐 Delayed modal deactivation for stats modal (300ms)')
+        this.gridEventHandler!.setModalActive(false)
+      }, 300)
     }
   }
 

@@ -1,7 +1,6 @@
 import * as PIXI from 'pixi.js'
 import { GameLogic } from '@/game/GameLogic'
 import { CellState, RENDER_CONSTANTS, CellClickInfo, ActionResult } from '@/types'
-// import { AnimationManager } from '@/animation/AnimationManager'  // 未使用のため削除
 import { EffectManager } from '@/effects/EffectManager'
 import { SoundManager, SoundType } from '@/audio/SoundManager'
 
@@ -12,20 +11,11 @@ import { SoundManager, SoundType } from '@/audio/SoundManager'
 export class GridEventHandler {
   private readonly cellSize = RENDER_CONSTANTS.CELL.SIZE
   private readonly cellSpacing = RENDER_CONSTANTS.CELL.SPACING
-  private readonly LONG_PRESS_DURATION = 500 // 長押し判定時間（ミリ秒）
-  private readonly DOUBLE_CLICK_DURATION = 300 // ダブルクリック判定時間（ミリ秒）
-
-  private longPressTimer: number | null = null
-  private isLongPress = false
-  private longPressTarget: CellClickInfo | null = null
-  
-  private lastClickTime = 0
-  private lastClickTarget: CellClickInfo | null = null
-  private doubleClickTimer: number | null = null
+  private isModalActive = false
+  private isTemporarilyDisabled = false
 
   constructor(
     private gameLogic: GameLogic,
-    // private animationManager: AnimationManager,  // 未使用のため削除
     private effectManager: EffectManager,
     private soundManager: SoundManager | null,
     private onDisplayUpdate: () => void
@@ -38,15 +28,26 @@ export class GridEventHandler {
    * @param gridContainer PIXIグリッドコンテナ
    */
   public setupEventHandlers(gridContainer: PIXI.Container): void {
+    console.log('🔧 Setting up event handlers on grid container:', {
+      children: gridContainer.children.length,
+      eventMode: gridContainer.eventMode,
+      interactive: gridContainer.interactive,
+      visible: gridContainer.visible
+    })
+    
     // グリッドの実際の位置を記録
     this.updateGridOffset(gridContainer)
-    
-    console.log('🎯 GridEventHandler: Grid offset recorded:', this.gridOffset)
     
     this.setupContainerEventMode(gridContainer)
     this.registerClickHandlers(gridContainer)
     this.registerHoverHandlers(gridContainer)
     this.registerContextMenuHandlers(gridContainer)
+    
+    console.log('✅ Event handlers setup complete. Container state:', {
+      eventMode: gridContainer.eventMode,
+      interactive: gridContainer.interactive,
+      listenerCount: gridContainer.listenerCount('pointerdown')
+    })
   }
 
   /**
@@ -55,6 +56,7 @@ export class GridEventHandler {
    */
   private setupContainerEventMode(gridContainer: PIXI.Container): void {
     gridContainer.eventMode = 'static'
+    gridContainer.cursor = 'default' // カーソル設定を明示的に指定
   }
 
   /**
@@ -81,63 +83,32 @@ export class GridEventHandler {
    * @param gridContainer PIXIグリッドコンテナ
    */
   private registerContextMenuHandlers(gridContainer: PIXI.Container): void {
-    gridContainer.on('rightclick', (event: PIXI.FederatedPointerEvent) => {
-      event.preventDefault()
+    gridContainer.on('rightclick', this.handleRightClick.bind(this))
+  }
+
+  /**
+   * ポインターダウンイベントを処理
+   * @param _event PIXIポインターイベント
+   */
+  private handlePointerDown(_event: PIXI.FederatedPointerEvent): void {
+    console.log('⬇️ PIXI PointerDown event received:', {
+      button: _event.button,
+      type: _event.type,
+      isModalActive: this.isModalActive
     })
   }
 
   /**
-   * ポインターダウンイベントを処理（長押し検出開始）
-   * @param event PIXIポインターイベント
-   */
-  private handlePointerDown(event: PIXI.FederatedPointerEvent): void {
-    const cellInfo = this.extractCellInfoFromEvent(event)
-    if (!cellInfo) return
-
-    this.isLongPress = false
-    this.longPressTarget = cellInfo
-
-    // 長押しタイマーを開始
-    this.longPressTimer = window.setTimeout(() => {
-      this.isLongPress = true
-      this.handleLongPress(cellInfo)
-    }, this.LONG_PRESS_DURATION)
-  }
-
-  /**
-   * ポインターアップイベントを処理
-   * 複雑なクリック判定ロジック：長押し、ダブルクリック、通常クリックを区別
-   * タイミングベースの状態管理でユーザー意図を正確に判定
+   * ポインターアップイベントを処理（左クリック - セル開放）
    * @param event PIXIポインターイベント
    */
   private handlePointerUp(event: PIXI.FederatedPointerEvent): void {
-    this.clearLongPressTimer()
-
-    // 長押しでない場合のみクリック処理を行う
-    if (!this.isLongPress && this.longPressTarget) {
-      const currentTime = Date.now()
-      const cellInfo = this.longPressTarget
-      
-      // ダブルクリック判定：同じセルを300ms以内に再クリック
-      if (this.lastClickTarget && 
-          this.lastClickTarget.coordinates.x === cellInfo.coordinates.x &&
-          this.lastClickTarget.coordinates.y === cellInfo.coordinates.y &&
-          currentTime - this.lastClickTime < this.DOUBLE_CLICK_DURATION) {
-        
-        // ダブルクリック: フラッグ切り替え（PCでの右クリックの代替）
-        this.handleDoubleClick(cellInfo)
-        this.clearDoubleClickTimer()
-        this.lastClickTarget = null
-        this.lastClickTime = 0
-      } else {
-        // 通常クリック: 遅延実行でダブルクリックを待つ（300msタイマー）
-        this.scheduleNormalClick(event, cellInfo)
-        this.lastClickTarget = cellInfo
-        this.lastClickTime = currentTime
-      }
-    }
-
-    this.longPressTarget = null
+    console.log('⬆️ PIXI PointerUp event received:', {
+      button: event.button,
+      type: event.type,
+      isModalActive: this.isModalActive
+    })
+    this.handleLeftClick(event)
   }
 
   /**
@@ -145,52 +116,39 @@ export class GridEventHandler {
    * @param _event PIXIポインターイベント
    */
   private handlePointerCancel(_event: PIXI.FederatedPointerEvent): void {
-    this.clearLongPressTimer()
-    this.clearDoubleClickTimer()
-    this.longPressTarget = null
-    this.lastClickTarget = null
+    // シンプル化のため特別な処理は不要
   }
 
   /**
-   * 長押しタイマーをクリア
-   */
-  private clearLongPressTimer(): void {
-    if (this.longPressTimer) {
-      clearTimeout(this.longPressTimer)
-      this.longPressTimer = null
-    }
-  }
-
-  /**
-   * ダブルクリックタイマーをクリア
-   */
-  private clearDoubleClickTimer(): void {
-    if (this.doubleClickTimer) {
-      clearTimeout(this.doubleClickTimer)
-      this.doubleClickTimer = null
-    }
-  }
-
-  /**
-   * 通常クリックを遅延実行（ダブルクリック待ち）
+   * 左クリック処理（セル開放）
    * @param event PIXIポインターイベント
-   * @param cellInfo セル情報
    */
-  private scheduleNormalClick(event: PIXI.FederatedPointerEvent, cellInfo: CellClickInfo): void {
-    this.clearDoubleClickTimer()
-    this.doubleClickTimer = window.setTimeout(() => {
-      this.handleNormalClick(event, cellInfo)
-      this.lastClickTarget = null
-      this.lastClickTime = 0
-    }, this.DOUBLE_CLICK_DURATION)
-  }
-
-  /**
-   * ダブルクリック処理（フラッグ切り替え）
-   * @param cellInfo セル情報
-   */
-  private handleDoubleClick(cellInfo: CellClickInfo): void {
-    const actionResult = this.processUserAction(2, cellInfo) // 右クリック相当として処理
+  private handleLeftClick(event: PIXI.FederatedPointerEvent): void {
+    console.log('👆 Left click processing:', {
+      isModalActive: this.isModalActive,
+      isTemporarilyDisabled: this.isTemporarilyDisabled,
+      button: event.button,
+      type: event.type
+    })
+    
+    if (this.isModalActive) {
+      console.log('🚫 Left click blocked - modal is active')
+      return
+    }
+    
+    if (this.isTemporarilyDisabled) {
+      console.log('🚫 Left click blocked - temporarily disabled for level change')
+      return
+    }
+    
+    const cellInfo = this.extractCellInfoFromEvent(event)
+    console.log('🎯 Cell info extracted:', cellInfo ? `${cellInfo.coordinates.x},${cellInfo.coordinates.y}` : 'null')
+    
+    if (!cellInfo) return
+    
+    const actionResult = this.processUserAction(0, cellInfo) // 左クリック
+    console.log('🎮 Action result:', actionResult)
+    
     if (actionResult.shouldPlayEffect) {
       this.playInteractionEffects(actionResult, cellInfo)
     }
@@ -198,24 +156,37 @@ export class GridEventHandler {
   }
 
   /**
-   * 長押し処理（フラッグ切り替え）
-   * @param cellInfo セル情報
-   */
-  private handleLongPress(cellInfo: CellClickInfo): void {
-    const actionResult = this.processUserAction(2, cellInfo) // 右クリック相当として処理
-    if (actionResult.shouldPlayEffect) {
-      this.playInteractionEffects(actionResult, cellInfo)
-    }
-    this.onDisplayUpdate()
-  }
-
-  /**
-   * 通常クリック処理（セル開放）
+   * 右クリック処理（フラッグ切り替え）
    * @param event PIXIポインターイベント
-   * @param cellInfo セル情報
    */
-  private handleNormalClick(event: PIXI.FederatedPointerEvent, cellInfo: CellClickInfo): void {
-    const actionResult = this.processUserAction(event.button, cellInfo)
+  private handleRightClick(event: PIXI.FederatedPointerEvent): void {
+    console.log('🖱️ Right click detected', {
+      isModalActive: this.isModalActive,
+      isTemporarilyDisabled: this.isTemporarilyDisabled,
+      button: event.button,
+      type: event.type
+    })
+    
+    event.preventDefault()
+    
+    if (this.isModalActive) {
+      console.log('🚫 Right click blocked - modal is active')
+      return
+    }
+    
+    if (this.isTemporarilyDisabled) {
+      console.log('🚫 Right click blocked - temporarily disabled for level change')
+      return
+    }
+    
+    const cellInfo = this.extractCellInfoFromEvent(event)
+    console.log('🎯 Cell info extracted:', cellInfo ? `${cellInfo.coordinates.x},${cellInfo.coordinates.y}` : 'null')
+    
+    if (!cellInfo) return
+    
+    const actionResult = this.processUserAction(2, cellInfo) // 右クリック
+    console.log('🎮 Action result:', actionResult)
+    
     if (actionResult.shouldPlayEffect) {
       this.playInteractionEffects(actionResult, cellInfo)
     }
@@ -321,8 +292,6 @@ export class GridEventHandler {
     switch (actionResult.effectType) {
       case 'explosion':
         this.effectManager.createExplosionEffect(worldPosition.x, worldPosition.y, this.cellSize)
-        // 震えるアニメーションを無効化
-        // this.effectManager.screenShake(RENDER_CONSTANTS.EFFECTS.SHAKE_INTENSITY, RENDER_CONSTANTS.EFFECTS.SHAKE_DURATION)
         if (this.soundManager) this.soundManager.play(SoundType.EXPLOSION)
         break
       case 'reveal':
@@ -331,8 +300,6 @@ export class GridEventHandler {
         break
       case 'flag':
         this.effectManager.createFlagEffect(worldPosition.x, worldPosition.y, this.cellSize)
-        // bounceアニメーションを無効化（ブロックサイズを変更させない）
-        // this.animationManager.bounce(container, RENDER_CONSTANTS.ANIMATION.BOUNCE_DURATION)
         if (this.soundManager) this.soundManager.play(SoundType.FLAG)
         break
     }
@@ -363,6 +330,28 @@ export class GridEventHandler {
   public updateGridOffset(gridContainer: PIXI.Container): void {
     this.gridOffset.x = gridContainer.x
     this.gridOffset.y = gridContainer.y
-    console.log('🔄 GridEventHandler: Grid offset updated:', this.gridOffset)
+  }
+
+  /**
+   * モーダル状態を設定
+   * @param isActive モーダルがアクティブかどうか
+   */
+  public setModalActive(isActive: boolean): void {
+    console.log(`🔄 Modal state changed: ${this.isModalActive} → ${isActive}`)
+    this.isModalActive = isActive
+  }
+
+  /**
+   * レベル変更時に一時的にグリッドイベントを無効化
+   * pointerupイベントのクリックスルーを防ぐ
+   */
+  public temporarilyDisableEvents(): void {
+    console.log('🚫 Temporarily disabling grid events for level change')
+    this.isTemporarilyDisabled = true
+    // 500ms後に再有効化
+    setTimeout(() => {
+      this.isTemporarilyDisabled = false
+      console.log('✅ Grid events re-enabled after level change')
+    }, 500)
   }
 }

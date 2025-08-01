@@ -155,6 +155,17 @@ export class GameRenderer {
   }
 
   /**
+   * GridEventHandlerを取得
+   * @returns GridEventHandler
+   */
+  public getEventHandler(): GridEventHandler {
+    if (!this.eventHandler) {
+      throw new Error('GameRenderer: Event handler not initialized')
+    }
+    return this.eventHandler
+  }
+
+  /**
    * グリッド情報を通知
    */
   private notifyGridInfo(gameLogic: any, gridContainer: any): void {
