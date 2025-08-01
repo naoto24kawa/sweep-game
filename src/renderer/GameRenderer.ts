@@ -5,6 +5,7 @@ import { CanvasSizeCalculator } from './CanvasSizeCalculator'
 import { PixiAppManager } from './PixiAppManager'
 import { GridManager } from './GridManager'
 import { GridEventHandler } from './GridEventHandler'
+import { AnimationManager } from '@/animation/AnimationManager'
 
 /**
  * リファクタリングされたGameRenderer
@@ -15,6 +16,7 @@ export class GameRenderer {
   private pixiAppManager: PixiAppManager
   private gridManager!: GridManager
   private eventHandler!: GridEventHandler
+  private animationManager: AnimationManager
   private initializationPromise: Promise<void>
   private deviceDetector: DeviceDetector
   private sizeCalculator: CanvasSizeCalculator
@@ -24,6 +26,7 @@ export class GameRenderer {
     this.pixiAppManager = new PixiAppManager()
     this.deviceDetector = DeviceDetector.getInstance()
     this.sizeCalculator = new CanvasSizeCalculator()
+    this.animationManager = new AnimationManager()
     
     // 専用クラスでキャンバスサイズを計算
     const config = gameLogic.getConfig()
@@ -190,6 +193,42 @@ export class GameRenderer {
    */
   public playGameOverEffect(): void {
     this.pixiAppManager.getEffectManager().createGameOverEffect()
+  }
+
+  /**
+   * アニメーション付きでレベル変更
+   * 古いグリッドをフェードアウトしてから新しいグリッドをフェードイン
+   */
+  public async animateLevelChange(): Promise<void> {
+    const gridContainer = this.gridManager.getGridContainer()
+    
+    console.log('🎬 Starting level change animation - fade out current grid')
+    
+    // 1. 現在のグリッドをフェードアウト (300ms)
+    await this.animationManager.fadeOut(gridContainer, 300)
+    
+    console.log('🎬 Current grid faded out - ready for new grid')
+    
+    // ここで新しいグリッドが作成される（外部で実行）
+    
+    return Promise.resolve()
+  }
+
+  /**
+   * 新しいグリッドをフェードイン
+   */
+  public async completeAnimateLevelChange(): Promise<void> {
+    const gridContainer = this.gridManager.getGridContainer()
+    
+    console.log('🎬 Starting new grid fade in animation')
+    
+    // 新しいグリッドを透明から開始
+    gridContainer.alpha = 0
+    
+    // 2. 新しいグリッドをフェードイン (200ms)
+    await this.animationManager.fadeIn(gridContainer, 200)
+    
+    console.log('🎬 Level change animation completed')
   }
 
   /**

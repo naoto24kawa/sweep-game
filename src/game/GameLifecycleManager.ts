@@ -58,7 +58,7 @@ export class GameLifecycleManager {
   }
   
   /**
-   * 難易度を変更してゲームを再初期化
+   * 難易度を変更してゲームを再初期化（アニメーション付き）
    */
   public async changeDifficulty(difficulty: Difficulty): Promise<void> {
     if (difficulty === this.currentDifficulty) {
@@ -69,14 +69,24 @@ export class GameLifecycleManager {
     console.log(`GameLifecycleManager: Changing difficulty from ${this.currentDifficulty} to ${difficulty}`)
     
     try {
-      // 現在のゲーム状態をクリーンアップ
+      // 1. 現在のグリッドをフェードアウト
+      if (this.renderer) {
+        await this.renderer.animateLevelChange()
+      }
+      
+      // 2. 現在のゲーム状態をクリーンアップ
       await this.cleanup()
       
-      // 新しい難易度でゲームを再構築
+      // 3. 新しい難易度でゲームを再構築
       this.currentDifficulty = difficulty
       await this.reinitializeWithDifficulty(difficulty)
       
-      console.log('GameLifecycleManager: Difficulty change completed')
+      // 4. 新しいグリッドをフェードイン
+      if (this.renderer) {
+        await this.renderer.completeAnimateLevelChange()
+      }
+      
+      console.log('GameLifecycleManager: Difficulty change completed with animation')
       
     } catch (error) {
       console.error('GameLifecycleManager: Failed to change difficulty:', error)

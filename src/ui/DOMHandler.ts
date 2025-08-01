@@ -22,7 +22,11 @@ export class DOMHandler {
     })
     
     canvas.addEventListener('mousedown', (e) => {
-      console.log('Canvas mousedown event:', e)
+      console.log('Canvas mousedown event:', {
+        button: e.button,
+        type: e.type,
+        which: e.which
+      })
     })
     
     this.container.appendChild(canvas)

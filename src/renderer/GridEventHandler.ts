@@ -1,6 +1,6 @@
 import * as PIXI from 'pixi.js'
 import { GameLogic } from '@/game/GameLogic'
-import { CellState, RENDER_CONSTANTS, CellClickInfo, ActionResult } from '@/types'
+import { RENDER_CONSTANTS, CellClickInfo, ActionResult } from '@/types'
 import { EffectManager } from '@/effects/EffectManager'
 import { SoundManager, SoundType } from '@/audio/SoundManager'
 
@@ -13,6 +13,7 @@ export class GridEventHandler {
   private readonly cellSpacing = RENDER_CONSTANTS.CELL.SPACING
   private isModalActive = false
   private isTemporarilyDisabled = false
+  private rightClickProcessed = false // 右クリックの重複処理防止
 
   constructor(
     private gameLogic: GameLogic,
@@ -80,22 +81,35 @@ export class GridEventHandler {
 
   /**
    * 右クリックメニューハンドラーを登録
-   * @param gridContainer PIXIグリッドコンテナ
+   * @param _gridContainer PIXIグリッドコンテナ（未使用）
    */
-  private registerContextMenuHandlers(gridContainer: PIXI.Container): void {
-    gridContainer.on('rightclick', this.handleRightClick.bind(this))
+  private registerContextMenuHandlers(_gridContainer: PIXI.Container): void {
+    // 右クリックはpointerdownで処理するため、rightclickハンドラーは無効化
+    // _gridContainer.on('rightclick', this.handleRightClick.bind(this))
   }
 
   /**
    * ポインターダウンイベントを処理
-   * @param _event PIXIポインターイベント
+   * @param event PIXIポインターイベント
    */
-  private handlePointerDown(_event: PIXI.FederatedPointerEvent): void {
+  private handlePointerDown(event: PIXI.FederatedPointerEvent): void {
     console.log('⬇️ PIXI PointerDown event received:', {
-      button: _event.button,
-      type: _event.type,
+      button: event.button,
+      type: event.type,
       isModalActive: this.isModalActive
     })
+    
+    // 右クリック（button=2）をここで処理
+    if (event.button === 2) {
+      console.log('🖱️ Right click detected via pointerdown')
+      this.rightClickProcessed = true // フラグを設定
+      this.handleRightClick(event)
+      
+      // 少し遅延してフラグをリセット
+      setTimeout(() => {
+        this.rightClickProcessed = false
+      }, 50)
+    }
   }
 
   /**
@@ -108,7 +122,11 @@ export class GridEventHandler {
       type: event.type,
       isModalActive: this.isModalActive
     })
-    this.handleLeftClick(event)
+    
+    // 左クリック（button=0）のみ処理
+    if (event.button === 0) {
+      this.handleLeftClick(event)
+    }
   }
 
   /**
@@ -164,8 +182,15 @@ export class GridEventHandler {
       isModalActive: this.isModalActive,
       isTemporarilyDisabled: this.isTemporarilyDisabled,
       button: event.button,
-      type: event.type
+      type: event.type,
+      rightClickProcessed: this.rightClickProcessed
     })
+    
+    // 重複処理をチェック
+    if (this.rightClickProcessed && event.type !== 'pointerdown') {
+      console.log('🚫 Right click blocked - already processed')
+      return
+    }
     
     event.preventDefault()
     
@@ -199,11 +224,54 @@ export class GridEventHandler {
    * @returns セルクリック情報またはnull
    */
   private extractCellInfoFromEvent(event: PIXI.FederatedPointerEvent): CellClickInfo | null {
+    if (!event.target) {
+      console.warn('⚠️ Event target is undefined')
+      return null
+    }
+    
+    // gameLogicが存在することを確認
+    if (!this.gameLogic) {
+      console.warn('⚠️ GameLogic is undefined')
+      return null
+    }
+    
     const cellContainer = this.findCellContainer(event.target as PIXI.Container)
-    if (!cellContainer?.label) return null
+    if (!cellContainer?.label) {
+      console.warn('⚠️ Cell container or label is undefined')
+      return null
+    }
 
     const coordinates = this.parseCellCoordinates(cellContainer.label)
-    const cell = this.gameLogic.getCells()[coordinates.y][coordinates.x]
+    console.log('🔍 Parsed coordinates:', { label: cellContainer.label, coordinates })
+    
+    const cells = this.gameLogic.getCells()
+    
+    // cells配列が存在することを確認
+    if (!cells || !Array.isArray(cells)) {
+      console.warn('⚠️ Cells array is undefined or not an array:', cells)
+      return null
+    }
+    
+    console.log('🔍 Cells array info:', { 
+      cellsLength: cells.length, 
+      firstRowLength: cells[0]?.length,
+      coordinates,
+      cellContainer: cellContainer.label 
+    })
+    
+    // セル配列の境界チェック
+    if (coordinates.y < 0 || coordinates.y >= cells.length || 
+        coordinates.x < 0 || !cells[coordinates.y] || coordinates.x >= cells[coordinates.y].length) {
+      console.warn('⚠️ Cell coordinates out of bounds:', { 
+        coordinates, 
+        cellsLength: cells.length,
+        rowLength: cells[coordinates.y]?.length,
+        label: cellContainer.label
+      })
+      return null
+    }
+    
+    const cell = cells[coordinates.y][coordinates.x]
     
     return {
       coordinates,
@@ -219,11 +287,27 @@ export class GridEventHandler {
    * @returns セルコンテナまたはnull
    */
   private findCellContainer(target: PIXI.Container): PIXI.Container | null {
-    let cellContainer = target
-    if (!cellContainer.label && cellContainer.parent) {
-      cellContainer = cellContainer.parent as PIXI.Container
+    let current = target
+    
+    // 最大3階層まで親を遡ってセルコンテナを探す
+    for (let i = 0; i < 3; i++) {
+      if (current?.label && typeof current.label === 'string' && current.label.includes('-')) {
+        console.log('🔍 Found cell container:', { label: current.label, level: i })
+        return current
+      }
+      
+      if (!current?.parent) break
+      current = current.parent as PIXI.Container
     }
-    return cellContainer?.label ? cellContainer : null
+    
+    console.warn('⚠️ Could not find cell container for target:', {
+      targetLabel: target.label,
+      targetType: target.constructor.name,
+      parentLabel: target.parent?.label,
+      parentType: target.parent?.constructor.name
+    })
+    
+    return null
   }
 
   /**
@@ -232,7 +316,20 @@ export class GridEventHandler {
    * @returns 座標オブジェクト
    */
   private parseCellCoordinates(label: string): { x: number; y: number } {
-    const [x, y] = label.split('-').map(Number)
+    const parts = label.split('-')
+    if (parts.length !== 2) {
+      console.warn('⚠️ Invalid cell label format:', label)
+      return { x: -1, y: -1 } // 無効な座標を返す
+    }
+    
+    const x = parseInt(parts[0], 10)
+    const y = parseInt(parts[1], 10)
+    
+    if (isNaN(x) || isNaN(y)) {
+      console.warn('⚠️ Invalid cell coordinates in label:', { label, x, y })
+      return { x: -1, y: -1 } // 無効な座標を返す
+    }
+    
     return { x, y }
   }
 
@@ -270,7 +367,7 @@ export class GridEventHandler {
       }
     } else if (button === 2) {
       const wasToggled = this.gameLogic.toggleFlag(coordinates.x, coordinates.y)
-      if (wasToggled && cell.state === CellState.FLAGGED) {
+      if (wasToggled) {
         return {
           shouldPlayEffect: true,
           effectType: 'flag'

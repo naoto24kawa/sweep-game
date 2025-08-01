@@ -55,6 +55,14 @@ export class GameStateWatcher {
    * コールバック関数を動的に更新
    */
   updateCallbacks(callbacks: Partial<GameStateWatcherCallbacks>): void {
+    console.log('🔄 GameStateWatcher: Updating callbacks:', {
+      hasOnGameSuccess: !!callbacks.onGameSuccess,
+      hasOnGameFailed: !!callbacks.onGameFailed,
+      previousCallbacks: {
+        hasOnGameSuccess: !!this.callbacks.onGameSuccess,
+        hasOnGameFailed: !!this.callbacks.onGameFailed
+      }
+    })
     this.callbacks = { ...this.callbacks, ...callbacks }
   }
 
@@ -67,6 +75,7 @@ export class GameStateWatcher {
         break
 
       case GameState.SUCCESS:
+        console.log('🏆 Game SUCCESS detected! Setting up stats modal display...')
         this.soundManager.playSuccessSequence()
         this.recordGameResult(true)
         if (this.renderer) {
@@ -74,8 +83,15 @@ export class GameStateWatcher {
         }
         // エフェクト完了後にStatsModalを表示
         setTimeout(() => {
+          console.log('🏆 Attempting to show stats modal:', {
+            hasCallback: !!this.callbacks.onGameSuccess,
+            callbackType: typeof this.callbacks.onGameSuccess
+          })
           if (this.callbacks.onGameSuccess) {
+            console.log('🏆 Calling onGameSuccess callback')
             this.callbacks.onGameSuccess()
+          } else {
+            console.warn('⚠️ onGameSuccess callback is not set!')
           }
         }, 2000) // 2秒後に表示（エフェクトが落ち着いてから）
         break

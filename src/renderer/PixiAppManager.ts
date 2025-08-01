@@ -27,8 +27,12 @@ export class PixiAppManager {
       height,
       backgroundColor: NEON_COLORS.primary.deepBlack,
       antialias: true,
-      resizeTo: window // ウィンドウサイズに自動リサイズ
+      resizeTo: window, // ウィンドウサイズに自動リサイズ
+      eventMode: 'static' // イベント処理を有効化
     })
+    
+    // stageのイベントモードも明示的に設定
+    this.app.stage.eventMode = 'static'
 
     this.initializeManagers()
     this.setupResizeHandler()
