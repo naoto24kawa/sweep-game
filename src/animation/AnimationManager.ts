@@ -1,5 +1,6 @@
 import * as PIXI from 'pixi.js'
 import { MemoryManager } from '@/performance/ObjectPool'
+import { ANIMATION_CONSTANTS } from '@/constants/animation'
 
 export interface AnimationConfig {
   duration: number
@@ -22,7 +23,7 @@ export class AnimationManager {
   private ticker: PIXI.Ticker
   private memoryManager: MemoryManager
   private frameCount: number = 0
-  private cleanupInterval: number = 300 // フレーム数
+  private readonly cleanupInterval = ANIMATION_CONSTANTS.PERFORMANCE.CLEANUP_INTERVAL_FRAMES
 
   constructor() {
     this.ticker = new PIXI.Ticker()
@@ -50,8 +51,8 @@ export class AnimationManager {
         tween.isActive = false
         tween.startTime = 0
       },
-      20,
-      50
+      ANIMATION_CONSTANTS.PERFORMANCE.TWEEN_POOL_INITIAL_SIZE,
+      ANIMATION_CONSTANTS.PERFORMANCE.TWEEN_POOL_MAX_SIZE
     )
   }
 
@@ -156,17 +157,17 @@ export class AnimationManager {
     this.tweens.push(tween)
   }
 
-  public fadeIn(target: PIXI.Container, duration: number = 300, onComplete?: () => void): void {
+  public fadeIn(target: PIXI.Container, duration: number = ANIMATION_CONSTANTS.DURATIONS.FADE_IN_DEFAULT, onComplete?: () => void): void {
     target.alpha = 0
     this.to(target, { alpha: 1 }, { duration, onComplete })
   }
 
-  public fadeOut(target: PIXI.Container, duration: number = 300, onComplete?: () => void): void {
+  public fadeOut(target: PIXI.Container, duration: number = ANIMATION_CONSTANTS.DURATIONS.FADE_OUT_DEFAULT, onComplete?: () => void): void {
     this.to(target, { alpha: 0 }, { duration, onComplete })
   }
 
-  public scaleUp(target: PIXI.Container, duration: number = 200, onComplete?: () => void): void {
-    target.scale.set(0.1)
+  public scaleUp(target: PIXI.Container, duration: number = ANIMATION_CONSTANTS.DURATIONS.SCALE_UP_DEFAULT, onComplete?: () => void): void {
+    target.scale.set(ANIMATION_CONSTANTS.SCALING.SCALE_UP_INITIAL)
     this.to(target, { 'scale.x': 1, 'scale.y': 1 }, { 
       duration, 
       easing: this.easeOutBack,
@@ -174,9 +175,9 @@ export class AnimationManager {
     })
   }
 
-  public bounce(target: PIXI.Container, duration: number = 400, onComplete?: () => void): void {
+  public bounce(target: PIXI.Container, duration: number = ANIMATION_CONSTANTS.DURATIONS.BOUNCE_DEFAULT, onComplete?: () => void): void {
     const originalScale = target.scale.x
-    this.to(target, { 'scale.x': originalScale * 1.3, 'scale.y': originalScale * 1.3 }, {
+    this.to(target, { 'scale.x': originalScale * ANIMATION_CONSTANTS.SCALING.BOUNCE_SCALE_MULTIPLIER, 'scale.y': originalScale * ANIMATION_CONSTANTS.SCALING.BOUNCE_SCALE_MULTIPLIER }, {
       duration: duration / 2,
       easing: this.easeOutQuad,
       onComplete: () => {
@@ -189,7 +190,7 @@ export class AnimationManager {
     })
   }
 
-  public pulse(target: PIXI.Container, intensity: number = 0.1, duration: number = 1000, loops: number = -1): void {
+  public pulse(target: PIXI.Container, intensity: number = ANIMATION_CONSTANTS.SCALING.PULSE_DEFAULT_INTENSITY, duration: number = ANIMATION_CONSTANTS.DURATIONS.PULSE_DEFAULT, loops: number = ANIMATION_CONSTANTS.EFFECTS.INFINITE_LOOPS): void {
     if (loops === 0) return
     
     const originalScale = target.scale.x
@@ -205,8 +206,8 @@ export class AnimationManager {
           onComplete: () => {
             if (loops > 0) {
               this.pulse(target, intensity, duration, loops - 1)
-            } else if (loops === -1) {
-              this.pulse(target, intensity, duration, -1)
+            } else if (loops === ANIMATION_CONSTANTS.EFFECTS.INFINITE_LOOPS) {
+              this.pulse(target, intensity, duration, ANIMATION_CONSTANTS.EFFECTS.INFINITE_LOOPS)
             }
           }
         })
@@ -214,10 +215,10 @@ export class AnimationManager {
     })
   }
 
-  public shake(target: PIXI.Container, intensity: number = 5, duration: number = 500): void {
+  public shake(target: PIXI.Container, intensity: number = 5, duration: number = ANIMATION_CONSTANTS.DURATIONS.SHAKE_DEFAULT): void {
     const originalX = target.x
     const originalY = target.y
-    const shakeCount = 20
+    const shakeCount = ANIMATION_CONSTANTS.EFFECTS.SHAKE_COUNT
     const shakeInterval = duration / shakeCount
 
     for (let i = 0; i < shakeCount; i++) {
@@ -258,7 +259,7 @@ export class AnimationManager {
   }
 
   private easeOutBack(t: number): number {
-    const c1 = 1.70158
+    const c1 = ANIMATION_CONSTANTS.EASING_COEFFICIENTS.BACK_C1
     const c3 = c1 + 1
     return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2)
   }
@@ -268,8 +269,8 @@ export class AnimationManager {
   }
 
   private easeOutBounce(t: number): number {
-    const n1 = 7.5625
-    const d1 = 2.75
+    const n1 = ANIMATION_CONSTANTS.EASING_COEFFICIENTS.BOUNCE_N1
+    const d1 = ANIMATION_CONSTANTS.EASING_COEFFICIENTS.BOUNCE_D1
 
     if (t < 1 / d1) {
       return n1 * t * t

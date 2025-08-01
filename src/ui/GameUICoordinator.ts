@@ -2,18 +2,18 @@ import { LevelSelector } from '@/ui/LevelSelector'
 import { StatsModal } from '@/ui/StatsModal'
 import { AchievementButton } from '@/ui/AchievementButton'
 import { AchievementModal } from '@/ui/AchievementModal'
-import { GridEventHandler } from '@/renderer/GridEventHandler'
+import { ModalEventController } from '@/ui/ModalEventController'
 
 /**
  * UIモーダル表示の統合管理を行う専用クラス
- * 単一責任: UI表示状態のコーディネーション
+ * 単一責任: UI表示状態のコーディネーション（イベント制御は分離）
  */
 export class GameUICoordinator {
   private levelSelector: LevelSelector
   private statsModal: StatsModal
   private achievementButton: AchievementButton | null = null
   private achievementModal: AchievementModal | null = null
-  private gridEventHandler: GridEventHandler | null = null
+  private modalEventController = new ModalEventController()
   private isInitialized: boolean = false
   
   constructor(levelSelector: LevelSelector, statsModal: StatsModal) {
@@ -31,11 +31,8 @@ export class GameUICoordinator {
   /**
    * GridEventHandlerを設定
    */
-  public setGridEventHandler(gridEventHandler: GridEventHandler): void {
-    console.log('🔗 Setting GridEventHandler in GameUICoordinator')
-    this.gridEventHandler = gridEventHandler
-    // 初期状態でモーダルは非アクティブに設定
-    this.gridEventHandler.setModalActive(false)
+  public setGridEventHandler(gridEventHandler: any): void {
+    this.modalEventController.setGridEventHandler(gridEventHandler)
   }
 
   /**
@@ -43,9 +40,7 @@ export class GameUICoordinator {
    */
   public showLevelSelector(): void {
     if (this.levelSelector && this.isInitialized) {
-      if (this.gridEventHandler) {
-        this.gridEventHandler.setModalActive(true)
-      }
+      this.modalEventController.onModalShow()
       this.levelSelector.show()
     } else {
       console.warn('GameUICoordinator: Cannot show level selector - not initialized')
@@ -57,9 +52,7 @@ export class GameUICoordinator {
    */
   public showStatsModal(): void {
     if (this.statsModal && this.isInitialized) {
-      if (this.gridEventHandler) {
-        this.gridEventHandler.setModalActive(true)
-      }
+      this.modalEventController.onModalShow()
       this.statsModal.show()
     } else {
       console.warn('GameUICoordinator: Cannot show stats modal - not initialized')
@@ -70,26 +63,14 @@ export class GameUICoordinator {
    * レベル選択画面を非表示
    */
   public hideLevelSelector(): void {
-    if (this.gridEventHandler) {
-      // レベル変更時は即座にモーダルを非アクティブにしてクリックスルーを防ぐ
-      console.log('⚡ Immediate modal deactivation for level selector')
-      this.gridEventHandler.setModalActive(false)
-      // さらに一時的にグリッドイベントを無効化してpointerupイベントもブロック
-      this.gridEventHandler.temporarilyDisableEvents()
-    }
+    this.modalEventController.onLevelSelectorHide()
   }
 
   /**
    * 統計モーダルを非表示
    */
   public hideStatsModal(): void {
-    if (this.gridEventHandler) {
-      // より長い遅延で統計モーダル処理の完了を確実に待つ
-      setTimeout(() => {
-        console.log('🕐 Delayed modal deactivation for stats modal (300ms)')
-        this.gridEventHandler!.setModalActive(false)
-      }, 300)
-    }
+    this.modalEventController.onStatsModalHide()
   }
 
   /**
@@ -111,6 +92,7 @@ export class GameUICoordinator {
    */
   public showAchievements(): void {
     if (this.achievementModal && this.isInitialized) {
+      this.modalEventController.onModalShow()
       this.achievementModal.show()
     } else {
       console.warn('GameUICoordinator: Cannot show achievement modal - not initialized')

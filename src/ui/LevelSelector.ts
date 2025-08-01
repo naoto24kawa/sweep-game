@@ -163,7 +163,6 @@ export class LevelSelector {
     
     // ホバーエフェクト
     buttonBg.on('pointerover', () => {
-      console.log('🏃 Button hover:', level.difficulty)
       buttonBg.clear()
       buttonBg
         .roundRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 8)
@@ -172,7 +171,6 @@ export class LevelSelector {
     })
     
     buttonBg.on('pointerout', () => {
-      console.log('👋 Button leave:', level.difficulty)
       buttonBg.clear()
       buttonBg
         .roundRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 8)
@@ -182,32 +180,20 @@ export class LevelSelector {
 
     // 複数のイベントタイプでクリックを処理
     buttonBg.on('pointerdown', (event: PIXI.FederatedPointerEvent) => {
-      console.log('🎯 Button POINTERDOWN:', level.difficulty, 'Position:', {x: event.global.x, y: event.global.y})
       event.stopPropagation()
       event.preventDefault()
       this.selectLevel(level.difficulty)
     })
     
     buttonBg.on('pointerup', (event: PIXI.FederatedPointerEvent) => {
-      console.log('🎯 Button POINTERUP:', level.difficulty)
       event.stopPropagation()
     })
     
     buttonBg.on('click', (event: PIXI.FederatedPointerEvent) => {
-      console.log('🎯 Button CLICK:', level.difficulty)
       event.stopPropagation()
     })
 
     buttonContainer.addChild(buttonBg)
-    
-    console.log(`🔲 Button ${level.difficulty} setup:`, {
-      buttonWidth,
-      buttonHeight,
-      eventMode: buttonBg.eventMode,
-      cursor: buttonBg.cursor,
-      interactive: buttonBg.interactive,
-      bounds: buttonBg.getBounds()
-    })
 
     // レベル名（ボタンサイズに応じてフォントサイズを調整）
     const levelNameFontSize = Math.min(18, buttonHeight / 3)

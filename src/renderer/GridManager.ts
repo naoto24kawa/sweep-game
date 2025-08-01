@@ -91,28 +91,7 @@ export class GridManager {
       this.gridContainer.y = minMargin
     }
     
-    console.log('🎯 Grid positioned at screen center:', { 
-      x: this.gridContainer.x,
-      y: this.gridContainer.y,
-      gridWidth,
-      gridHeight,
-      screenWidth: this.app.screen.width,
-      screenHeight: this.app.screen.height,
-      isCenteredX: gridWidth <= availableWidth,
-      isCenteredY: gridHeight <= availableHeight
-    })
-    
-    console.log('🎯 Grid positioned (center):', { 
-      x: this.gridContainer.x, 
-      y: this.gridContainer.y, 
-      gridWidth, 
-      gridHeight,
-      screenWidth: this.app.screen.width,
-      screenHeight: this.app.screen.height,
-      availableWidth,
-      availableHeight,
-      minMargin
-    })
+    // グリッドの中央配置完了
 
     // グリッド位置が変更されたことを通知
     if (this.onGridPositionChanged) {
