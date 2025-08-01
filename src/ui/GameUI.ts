@@ -14,6 +14,7 @@ import { UI_CONSTANTS } from '@/constants/ui'
  */
 export class GameUI {
   private container: PIXI.Container
+  private scoreContainer: PIXI.Container
   private gameLogic: GameLogic
   
   // 委譲先のクラス
@@ -37,6 +38,7 @@ export class GameUI {
     _settingsManager: SettingsManager
   ) {
     this.container = new PIXI.Container()
+    this.scoreContainer = new PIXI.Container()
     this.gameLogic = gameLogic
 
     // 専用クラスのインスタンス化
@@ -51,6 +53,7 @@ export class GameUI {
     // UIの配置
     this.setupUI()
     stage.addChild(this.container)
+    stage.addChild(this.scoreContainer)
     
     // タイマー開始
     this.timer.start()
@@ -121,13 +124,13 @@ export class GameUI {
     difficultyText.y = UI_CONSTANTS.SPACING.LARGE
     this.container.addChild(difficultyText)
 
-    // スコア表示を独立した位置に配置（グリッド左上、左端揃え）
+    // スコア表示を独立したコンテナに配置（タイマーとグリッドの間）
     this.scoreText.style.fill = { color: 0x00ffff } // NEON_COLORS.accent.neonCyan
     const scorePosition = this.layout.calculateScorePosition(effectiveWidth)
-    this.scoreText.anchor.set(0, 0) // 左端揃え
+    this.scoreText.anchor.set(0.5, 0) // 中央揃え
     this.scoreText.x = scorePosition.x
     this.scoreText.y = scorePosition.y
-    this.container.addChild(this.scoreText)
+    this.scoreContainer.addChild(this.scoreText)
   }
 
   private setupStatsPanel(gameWidth: number): void {
@@ -152,6 +155,36 @@ export class GameUI {
   }
 
   // === 公開API ===
+  
+  /**
+   * グリッド情報を設定（レイアウト計算に使用）
+   */
+  public setGridInfo(x: number, y: number, width: number, height: number): void {
+    this.layout.setGridInfo(x, y, width, height)
+    // グリッド情報変更時にUIを再配置
+    this.updateUILayout()
+  }
+
+  /**
+   * UIレイアウトを更新
+   */
+  private updateUILayout(): void {
+    // UIコンテナの位置を再計算
+    const position = this.layout.calculateContainerPosition()
+    this.container.x = position.x
+    this.container.y = position.y
+    
+    // スコア表示の位置を再計算（独立したコンテナなので絶対座標）
+    const effectiveWidth = this.layout.getEffectiveUIWidth()
+    const scorePosition = this.layout.calculateScorePosition(effectiveWidth)
+    this.scoreContainer.x = 0 // スコアコンテナは絶対位置
+    this.scoreContainer.y = 0
+    this.scoreText.anchor.set(0.5, 0) // 中央揃え
+    this.scoreText.x = scorePosition.x
+    this.scoreText.y = scorePosition.y
+    
+    console.log('🎯 GameUI: Updated score position (between timer and grid):', { x: scorePosition.x, y: scorePosition.y })
+  }
   
   /**
    * 統計パネルを表示
@@ -187,5 +220,6 @@ export class GameUI {
   public destroy(): void {
     this.timer.destroy()
     this.container.destroy({ children: true })
+    this.scoreContainer.destroy({ children: true })
   }
 }

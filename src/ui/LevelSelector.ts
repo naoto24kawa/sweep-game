@@ -245,6 +245,20 @@ export class LevelSelector {
     this.options.onLevelSelect(difficulty)
   }
 
+  /**
+   * レベル選択コールバックを更新
+   */
+  public setOnLevelSelect(callback: (difficulty: Difficulty) => void): void {
+    this.options.onLevelSelect = callback
+  }
+
+  /**
+   * 閉じるコールバックを更新
+   */
+  public setOnClose(callback: () => void): void {
+    this.options.onClose = callback
+  }
+
   public show(): void {
     console.log('🎮 LevelSelector.show() called, current visible:', this.isVisible)
     if (!this.isVisible) {

@@ -18,6 +18,7 @@ export class GameRenderer {
   private initializationPromise: Promise<void>
   private deviceDetector: DeviceDetector
   private sizeCalculator: CanvasSizeCalculator
+  private onGridInfoChanged?: (x: number, y: number, width: number, height: number) => void
 
   constructor(gameLogic: GameLogic, soundManager?: SoundManager) {
     this.pixiAppManager = new PixiAppManager()
@@ -73,7 +74,14 @@ export class GameRenderer {
     // グリッド位置変更時にイベントハンドラーのオフセットを更新
     this.gridManager.setGridPositionChangeCallback((gridContainer) => {
       this.eventHandler.updateGridOffset(gridContainer)
+      
+      // UI要素にグリッド情報を通知
+      this.notifyGridInfo(gameLogic, gridContainer)
     })
+    
+    // 初期化完了時にもグリッド情報を通知
+    const gridContainer = this.gridManager.getGridContainer()
+    this.notifyGridInfo(gameLogic, gridContainer)
   }
 
   /**
@@ -134,6 +142,26 @@ export class GameRenderer {
    */
   public getApp(): any {
     return this.pixiAppManager.getApp()
+  }
+
+  /**
+   * グリッド情報変更時のコールバックを設定
+   */
+  public setGridInfoChangeCallback(callback: (x: number, y: number, width: number, height: number) => void): void {
+    this.onGridInfoChanged = callback
+  }
+
+  /**
+   * グリッド情報を通知
+   */
+  private notifyGridInfo(gameLogic: any, gridContainer: any): void {
+    if (this.onGridInfoChanged) {
+      const config = gameLogic.getConfig()
+      const gridWidth = config.width * (32 + 2) - 2  // RENDER_CONSTANTS.CELL.SIZE + SPACING
+      const gridHeight = config.height * (32 + 2) - 2
+      console.log('🎯 GameRenderer: Notifying grid info:', { x: gridContainer.x, y: gridContainer.y, gridWidth, gridHeight })
+      this.onGridInfoChanged(gridContainer.x, gridContainer.y, gridWidth, gridHeight)
+    }
   }
 
   /**

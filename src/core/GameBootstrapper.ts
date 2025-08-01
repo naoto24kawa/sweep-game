@@ -114,6 +114,11 @@ export class GameBootstrapper {
     
     const gameUI = new GameUI(stage, services.gameLogic, services.statsManager, services.settingsManager)
     
+    // GameRendererからGameUIにグリッド情報を通知するように設定
+    services.renderer.setGridInfoChangeCallback((x: number, y: number, width: number, height: number) => {
+      gameUI.setGridInfo(x, y, width, height)
+    })
+    
     const levelSelector = new LevelSelector(stage, {
       onLevelSelect: () => {}, // これは後で Game クラスで設定される
       onClose: () => {},

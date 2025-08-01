@@ -5,7 +5,8 @@ import { GameStateWatcher } from '@/game/GameStateWatcher'
 import { SoundManager } from '@/audio/SoundManager'
 import { DOMHandler } from '@/ui/DOMHandler'
 import { GameUICoordinator } from '@/ui/GameUICoordinator'
-import { Difficulty, DIFFICULTY_CONFIGS } from '@/types'
+import { GameBootstrapper } from '@/core/GameBootstrapper'
+import { Difficulty } from '@/types'
 
 /**
  * ゲームのライフサイクル管理を行う専用クラス
@@ -20,6 +21,8 @@ export class GameLifecycleManager {
   private domHandler: DOMHandler
   private uiCoordinator: GameUICoordinator
   private currentDifficulty: Difficulty
+  private container: HTMLElement
+  private onReinitializeCallback?: (components: any) => void
   
   constructor(
     gameLogic: GameLogic,
@@ -29,7 +32,9 @@ export class GameLifecycleManager {
     soundManager: SoundManager,
     domHandler: DOMHandler,
     uiCoordinator: GameUICoordinator,
-    initialDifficulty: Difficulty
+    initialDifficulty: Difficulty,
+    container: HTMLElement,
+    onReinitializeCallback?: (components: any) => void
   ) {
     this.gameLogic = gameLogic
     this.renderer = renderer
@@ -39,6 +44,8 @@ export class GameLifecycleManager {
     this.domHandler = domHandler
     this.uiCoordinator = uiCoordinator
     this.currentDifficulty = initialDifficulty
+    this.container = container
+    this.onReinitializeCallback = onReinitializeCallback
   }
   
   /**
@@ -131,23 +138,35 @@ export class GameLifecycleManager {
   
   /**
    * 指定された難易度でゲームを再初期化
-   * 注意: この実装は簡略化されており、実際にはGameBootstrapperを使用するべき
+   * GameBootstrapperを使用して完全な再初期化を行う
    */
   private async reinitializeWithDifficulty(difficulty: Difficulty): Promise<void> {
-    const config = DIFFICULTY_CONFIGS[difficulty]
-    
-    // 新しいゲームロジックとレンダラーを作成
-    this.gameLogic = new GameLogic(config)
-    this.renderer = new GameRenderer(this.gameLogic, this.soundManager)
-    
-    // レンダラーの準備
-    await this.renderer.waitForReady()
-    const canvas = this.renderer.getCanvas()
-    this.domHandler.setupCanvas(canvas)
-    
-    // UIの再作成（簡略化 - 実際にはより完全な初期化が必要）
-    // Note: このメソッドは今後GameBootstrapperを使用するように改善される予定
-    
-    this.renderer.setupEventHandlers()
+    try {
+      // GameBootstrapperを使用して完全なコンポーネントセットを初期化
+      const components = await GameBootstrapper.initialize(this.container, difficulty)
+      
+      // 新しいコンポーネントで自分自身のプロパティを更新
+      this.gameLogic = components.gameLogic
+      this.renderer = components.renderer
+      this.gameUI = components.gameUI
+      this.gameStateWatcher = components.gameStateWatcher
+      this.soundManager = components.soundManager
+      this.domHandler = components.domHandler
+      this.uiCoordinator = new GameUICoordinator(components.levelSelector, components.statsModal)
+      this.uiCoordinator.setAchievementButton(components.achievementButton)
+      this.uiCoordinator.setAchievementModal(components.achievementModal)
+      this.uiCoordinator.markAsInitialized()
+      
+      // コールバック関数が設定されていれば、新しいコンポーネントで再設定
+      if (this.onReinitializeCallback) {
+        this.onReinitializeCallback(components)
+      }
+      
+      console.log(`GameLifecycleManager: Successfully reinitialized with ${difficulty} difficulty`)
+      
+    } catch (error) {
+      console.error('GameLifecycleManager: Failed to reinitialize with difficulty:', error)
+      throw error
+    }
   }
 }

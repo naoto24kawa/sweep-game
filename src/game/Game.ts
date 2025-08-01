@@ -19,8 +19,10 @@ export class Game {
   private soundManager!: SoundManager
   private uiCoordinator!: GameUICoordinator
   private lifecycleManager!: GameLifecycleManager
+  private container: HTMLElement
 
   constructor(container: HTMLElement, difficulty: Difficulty = Difficulty.NOVICE) {
+    this.container = container
     this.initializeAsync(container, difficulty)
   }
 
@@ -50,7 +52,9 @@ export class Game {
         components.soundManager,
         components.domHandler,
         this.uiCoordinator,
-        difficulty
+        difficulty,
+        this.container,
+        (newComponents: any) => this.setupEventHandlers(newComponents)
       )
       
       // イベントハンドラーを設定
@@ -75,8 +79,8 @@ export class Game {
    */
   private setupEventHandlers(components: any): void {
     // LevelSelectorのコールバックを更新
-    components.levelSelector.onLevelSelect = (difficulty: Difficulty) => this.handleLevelSelection(difficulty)
-    components.levelSelector.onClose = () => this.handleLevelSelectorClose()
+    components.levelSelector.setOnLevelSelect((difficulty: Difficulty) => this.handleLevelSelection(difficulty))
+    components.levelSelector.setOnClose(() => this.handleLevelSelectorClose())
     
     // StatsModalのコールバックを更新
     components.statsModal.onClose = () => this.handleStatsModalClose()
