@@ -138,33 +138,108 @@ export class GameUILayout {
     // X座標：画面中央
     const x = screenWidth / 2 // アンカーが0.5なので中央座標
     
-    // Y座標：タイマーとグリッドの中間に配置（グリッドに被らないよう調整）
+    console.log('🎯 GameUILayout: Score calculation - gridPosition exists:', !!this.gridPosition)
+    
+    if (this.gridPosition) {
+      // グリッド情報ベースの計算
+      console.log('🎯 GameUILayout: Using grid-based calculation')
+      
+      // タイマーコンテナの位置を正しく計算
+      const containerPosition = this.calculateContainerPosition()
+      const timerBottomY = containerPosition.y + UI_CONSTANTS.HEADER.HEIGHT
+      const gridTopY = this.gridPosition.y
+      const scoreTextHeight = UI_CONSTANTS.TEXT.STATUS_FONT_SIZE - 2
+      
+      // 利用可能なスペースを計算
+      const totalGap = gridTopY - timerBottomY
+      console.log('🎯 GameUILayout: Available space:', { timerBottomY, gridTopY, totalGap })
+      
+      if (totalGap < 30) {
+        // スペースが狭すぎる場合は、グリッドに被らない安全な位置に配置
+        const textHalfHeight = scoreTextHeight / 2
+        const safeY = gridTopY - textHalfHeight - UI_CONSTANTS.SPACING.TINY // グリッドから5px離す
+        const finalY = Math.max(timerBottomY + UI_CONSTANTS.SPACING.TINY, safeY) // タイマーからも最低5px離す
+        console.log('🎯 GameUILayout: Insufficient space, using safe position:', { 
+          finalY, totalGap, safeY, textHalfHeight, gridTopY 
+        })
+        return { x, y: finalY }
+      }
+      
+      // 十分なスペースがある場合は、適応的マージンを使用
+      const maxMargin = UI_CONSTANTS.SPACING.STANDARD // 20px
+      const requiredSpace = scoreTextHeight + (maxMargin * 2)
+      
+      let topMargin, bottomMargin
+      if (totalGap >= requiredSpace) {
+        // 十分なスペースがある場合
+        topMargin = bottomMargin = maxMargin
+      } else {
+        // スペースが限られている場合は、proportional に縮小
+        const availableMargin = (totalGap - scoreTextHeight) / 2
+        topMargin = bottomMargin = Math.max(UI_CONSTANTS.SPACING.TINY, availableMargin)
+      }
+      
+      const minScoreY = timerBottomY + topMargin
+      const maxScoreY = gridTopY - (scoreTextHeight / 2) - bottomMargin
+      const finalY = (minScoreY + maxScoreY) / 2
+      
+      console.log('🎯 GameUILayout: Grid-based score position:', { 
+        x, y: finalY, timerBottomY, gridTopY, minScoreY, maxScoreY, topMargin, bottomMargin,
+        totalGap, requiredSpace, availableSpace: maxScoreY - minScoreY
+      })
+      return { x, y: finalY }
+    }
+    
+    // フォールバック計算
+    console.log('🎯 GameUILayout: Using fallback calculation')
     const containerPosition = this.calculateContainerPosition()
     const timerBottomY = containerPosition.y + UI_CONSTANTS.HEADER.HEIGHT
     const gridTopY = this.getGridTopPosition()
+    const scoreTextHeight = UI_CONSTANTS.TEXT.STATUS_FONT_SIZE - 2
     
-    // タイマーとグリッドの中間点を計算
-    const gapCenterY = timerBottomY + ((gridTopY - timerBottomY) / 2)
+    // 利用可能なスペースを計算（フォールバック）
+    const totalGap = gridTopY - timerBottomY
+    console.log('🎯 GameUILayout: Fallback available space:', { timerBottomY, gridTopY, totalGap })
     
-    // スコアのフォントサイズを考慮して、グリッドに被らないよう微調整
-    const scoreTextHeight = UI_CONSTANTS.TEXT.STATUS_FONT_SIZE - 2 // GameUI.tsでのスコアフォントサイズ
-    const safeMargin = UI_CONSTANTS.SPACING.TINY // 最小限の安全マージン
-    const maxScoreY = gridTopY - (scoreTextHeight / 2) - safeMargin // グリッドに被らない最下位置（アンカー0.5対応）
+    if (totalGap < 30) {
+      // スペースが狭すぎる場合は、グリッドに被らない安全な位置に配置
+      const textHalfHeight = scoreTextHeight / 2
+      const safeY = gridTopY - textHalfHeight - UI_CONSTANTS.SPACING.TINY // グリッドから5px離す
+      const finalY = Math.max(timerBottomY + UI_CONSTANTS.SPACING.TINY, safeY) // タイマーからも最低5px離す
+      console.log('🎯 GameUILayout: Fallback insufficient space, using safe position:', { 
+        finalY, totalGap, safeY, textHalfHeight, gridTopY 
+      })
+      return { x, y: finalY }
+    }
     
-    // 中間点とグリッド安全位置の小さい方を選択
-    const finalY = Math.min(gapCenterY, maxScoreY)
+    // 適応的マージンを使用
+    const maxMargin = UI_CONSTANTS.SPACING.STANDARD // 20px
+    const requiredSpace = scoreTextHeight + (maxMargin * 2)
     
-    console.log('🎯 GameUILayout: Score position (center with safety):', { 
+    let topMargin, bottomMargin
+    if (totalGap >= requiredSpace) {
+      topMargin = bottomMargin = maxMargin
+    } else {
+      const availableMargin = (totalGap - scoreTextHeight) / 2
+      topMargin = bottomMargin = Math.max(UI_CONSTANTS.SPACING.TINY, availableMargin)
+    }
+    
+    const minScoreY = timerBottomY + topMargin
+    const maxScoreY = gridTopY - (scoreTextHeight / 2) - bottomMargin
+    const finalY = (minScoreY + maxScoreY) / 2
+    
+    console.log('🎯 GameUILayout: Score position (with margins):', { 
       x, 
       y: finalY,
       timerBottomY,
       gridTopY,
-      gapCenterY,
+      minScoreY,
       maxScoreY,
+      topMargin,
+      bottomMargin,
       scoreTextHeight,
-      safeMargin,
-      gapSize: gridTopY - timerBottomY,
-      chosenPosition: finalY === gapCenterY ? 'center' : 'safety'
+      availableGap: maxScoreY - minScoreY,
+      totalGapSize: gridTopY - timerBottomY
     })
     
     return { x, y: finalY }

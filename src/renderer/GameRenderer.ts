@@ -79,9 +79,12 @@ export class GameRenderer {
       this.notifyGridInfo(gameLogic, gridContainer)
     })
     
-    // 初期化完了時にもグリッド情報を通知
-    const gridContainer = this.gridManager.getGridContainer()
-    this.notifyGridInfo(gameLogic, gridContainer)
+    // 初期化完了時にもグリッド情報を通知（遅延実行で確実に）
+    setTimeout(() => {
+      const gridContainer = this.gridManager.getGridContainer()
+      this.notifyGridInfo(gameLogic, gridContainer)
+      console.log('🎯 GameRenderer: Initial grid info notification sent')
+    }, 10)
   }
 
   /**
