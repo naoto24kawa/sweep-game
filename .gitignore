@@ -69,3 +69,6 @@ temp/
 # Development tools
 .claude/
 .vscode/
+
+# MPC Server
+.serena/

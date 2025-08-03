@@ -79,24 +79,44 @@ export class Game {
    * イベントハンドラーを設定（コールバック関数の接続）
    */
   private setupEventHandlers(components: any): void {
+    console.log('🔧 Game: Setting up event handlers', {
+      hasLevelSelector: !!components.levelSelector,
+      hasStatsModal: !!components.statsModal,
+      hasEventManager: !!components.eventManager,
+      hasGameStateWatcher: !!components.gameStateWatcher
+    })
+    
     // LevelSelectorのコールバックを更新
     components.levelSelector.setOnLevelSelect((difficulty: Difficulty) => this.handleLevelSelection(difficulty))
     components.levelSelector.setOnClose(() => this.handleLevelSelectorClose())
     
     // StatsModalのコールバックを更新
-    components.statsModal.onClose = () => this.handleStatsModalClose()
-    components.statsModal.onRestart = () => this.handleStatsModalRestart()
-    components.statsModal.onLevelSelect = () => this.handleStatsModalLevelSelect()
+    components.statsModal.updateCallbacks({
+      onClose: () => this.handleStatsModalClose(),
+      onRestart: () => this.handleStatsModalRestart(),
+      onLevelSelect: () => this.handleStatsModalLevelSelect()
+    })
     
     // EventManagerのコールバックを更新
-    components.eventManager.restartCallback = () => this.restart()
-    components.eventManager.showLevelSelectorCallback = () => this.showLevelSelector()
+    console.log('🔧 Game: Setting EventManager callbacks')
+    console.log('🔧 Game: Before assignment - restartCallback exists:', !!components.eventManager.restartCallback)
+    components.eventManager.restartCallback = () => {
+      console.log('🔄 Game: Restart callback invoked')
+      this.restart()
+    }
+    components.eventManager.showLevelSelectorCallback = () => {
+      console.log('📋 Game: Show level selector callback invoked')
+      this.showLevelSelector()
+    }
+    console.log('🔧 Game: After assignment - restartCallback exists:', !!components.eventManager.restartCallback)
     
     // GameStateWatcherのコールバックを更新
     components.gameStateWatcher.updateCallbacks({
       onGameSuccess: () => this.showStatsModal(),
       onGameFailed: () => this.showStatsModal()
     })
+    
+    console.log('✅ Game: Event handlers setup complete')
   }
 
   /**
@@ -121,6 +141,8 @@ export class Game {
   }
 
   private handleStatsModalRestart(): void {
+    // モーダル状態をリセットしてグリッドイベントを有効化
+    this.uiCoordinator.resetModalState()
     this.restart()
   }
 

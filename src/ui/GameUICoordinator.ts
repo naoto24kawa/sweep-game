@@ -40,8 +40,18 @@ export class GameUICoordinator {
    */
   public showLevelSelector(): void {
     if (this.levelSelector && this.isInitialized) {
+      // statsModalが表示中なら先に非表示にする
+      if (this.statsModal.isShowing()) {
+        this.statsModal.hide()
+      }
+      
+      // モーダル表示のイベント処理を実行（保留中の非表示処理をキャンセル）
       this.modalEventController.onModalShow()
-      this.levelSelector.show()
+      
+      // 少し遅延してレベル選択画面を表示（競合状態を回避）
+      setTimeout(() => {
+        this.levelSelector.show()
+      }, 50)
     } else {
       console.warn('GameUICoordinator: Cannot show level selector - not initialized')
     }
@@ -104,6 +114,13 @@ export class GameUICoordinator {
    */
   public hideAllModals(): void {
     // 将来的に複数のモーダルがある場合の拡張ポイント
+  }
+  
+  /**
+   * モーダル状態をリセット（リスタート時に使用）
+   */
+  public resetModalState(): void {
+    this.modalEventController.resetModalState()
   }
   
   /**

@@ -147,6 +147,11 @@ export class LevelSelector {
     modalHeight: number
   ): PIXI.Container {
     const buttonContainer = new PIXI.Container()
+    
+    // ボタンコンテナ全体でイベントを受け取るよう設定
+    buttonContainer.eventMode = 'static'
+    buttonContainer.cursor = 'pointer'
+    
     const buttonWidth = modalWidth - Math.min(80, modalWidth * 0.2)
     const buttonHeight = Math.min(60, modalHeight / 6)
     
@@ -178,20 +183,24 @@ export class LevelSelector {
         .stroke({ width: 2, color: level.color, alpha: 0.6 })
     })
 
-    // 複数のイベントタイプでクリックを処理
-    buttonBg.on('pointerdown', (event: PIXI.FederatedPointerEvent) => {
+    // クリックハンドラー（イベント伝播を防ぐ）
+    const handleClick = (event: PIXI.FederatedPointerEvent) => {
       event.stopPropagation()
       event.preventDefault()
       this.selectLevel(level.difficulty)
-    })
-    
+    }
+
+    // 複数のイベントタイプでクリックを処理（背景）
+    buttonBg.on('pointerdown', handleClick)
     buttonBg.on('pointerup', (event: PIXI.FederatedPointerEvent) => {
       event.stopPropagation()
     })
-    
     buttonBg.on('click', (event: PIXI.FederatedPointerEvent) => {
       event.stopPropagation()
     })
+    
+    // コンテナにもイベントリスナーを設定（テキスト領域も含む）
+    buttonContainer.on('pointerdown', handleClick)
 
     buttonContainer.addChild(buttonBg)
 

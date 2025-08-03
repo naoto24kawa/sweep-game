@@ -258,6 +258,10 @@ export class StatsModal {
     onClick: () => void
   ): PIXI.Container {
     const buttonContainer = new PIXI.Container()
+    
+    // ボタンコンテナ全体でイベントを受け取るよう設定
+    buttonContainer.eventMode = 'static'
+    buttonContainer.cursor = 'pointer'
 
     const buttonBg = new PIXI.Graphics()
     buttonBg
@@ -268,31 +272,47 @@ export class StatsModal {
     buttonBg.eventMode = 'static'
     buttonBg.cursor = 'pointer'
     
-    // ホバーエフェクト
-    buttonBg.on('pointerover', () => {
+    // ホバーエフェクト（背景用）
+    const handleHoverIn = () => {
       buttonBg.clear()
       buttonBg
         .roundRect(-width / 2, -height / 2, width, height, 6)
         .fill({ color, alpha: 0.2 })
         .stroke({ width: 2, color, alpha: 1.0 })
-    })
+    }
     
-    buttonBg.on('pointerout', () => {
+    const handleHoverOut = () => {
       buttonBg.clear()
       buttonBg
         .roundRect(-width / 2, -height / 2, width, height, 6)
         .fill({ color: 0x1a1a1a, alpha: 0.8 })
         .stroke({ width: 2, color, alpha: 0.6 })
-    })
+    }
+    
+    // クリックハンドラー（イベント伝播を防ぐ）
+    const handleClick = (event: PIXI.FederatedPointerEvent) => {
+      event.stopPropagation()
+      event.preventDefault()
+      onClick()
+    }
 
-    buttonBg.on('pointerdown', onClick)
+    // 背景にイベントリスナーを設定
+    buttonBg.on('pointerover', handleHoverIn)
+    buttonBg.on('pointerout', handleHoverOut)
+    buttonBg.on('pointerdown', handleClick)
+    
+    // コンテナにもイベントリスナーを設定（テキスト領域も含む）
+    buttonContainer.on('pointerover', handleHoverIn)
+    buttonContainer.on('pointerout', handleHoverOut)
+    buttonContainer.on('pointerdown', handleClick)
 
     buttonContainer.addChild(buttonBg)
 
-    // ボタンテキスト
+    // ボタンテキスト（イベントを無効化してクリックをブロックしない）
     const fontSize = Math.min(12, height / 2.5)
     const buttonText = this.createText(text, fontSize, color)
     buttonText.anchor.set(0.5)
+    buttonText.eventMode = 'none' // テキストがイベントをブロックしないよう設定
     buttonContainer.addChild(buttonText)
 
     return buttonContainer
@@ -322,6 +342,25 @@ export class StatsModal {
     const minutes = Math.floor(seconds / 60)
     const secs = seconds % 60
     return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+  }
+
+  /**
+   * コールバック関数を動的に更新するメソッド
+   */
+  public updateCallbacks(callbacks: {
+    onClose?: () => void
+    onRestart?: () => void
+    onLevelSelect?: () => void
+  }): void {
+    if (callbacks.onClose) {
+      this.options.onClose = callbacks.onClose
+    }
+    if (callbacks.onRestart) {
+      this.options.onRestart = callbacks.onRestart
+    }
+    if (callbacks.onLevelSelect) {
+      this.options.onLevelSelect = callbacks.onLevelSelect
+    }
   }
 
   public show(): void {
@@ -357,7 +396,7 @@ export class StatsModal {
     if (this.isVisible) {
       this.container.visible = false
       this.isVisible = false
-      this.options.onClose()
+      // onClose は手動で hide() を呼び出すときのみ実行、ボタンからは実行済み
     }
   }
 
