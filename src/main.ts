@@ -1,8 +1,14 @@
 import { Game } from '@/game/Game'
 import { Difficulty, GameInitializationError } from '@/types'
+import { Logger, LogLevel } from '@/core/Logger'
 
 async function initializeGame(): Promise<void> {
   try {
+    // 開発環境でDEBUGログを有効化
+    if ((import.meta as any).env?.DEV) {
+      Logger.setLevel(LogLevel.DEBUG)
+      Logger.debug('Logger initialized with DEBUG level')
+    }
     const appContainer = document.getElementById('app')
     if (!appContainer) {
       throw new GameInitializationError('App container element not found', 'CONTAINER_NOT_FOUND')

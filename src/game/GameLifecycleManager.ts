@@ -8,6 +8,7 @@ import { GameUICoordinator } from '@/ui/GameUICoordinator'
 import { GameBootstrapper } from '@/core/GameBootstrapper'
 import { Difficulty } from '@/types'
 import { GameStateFlags } from '@/core/GameStateFlags'
+import { Logger } from '@/core/Logger'
 
 /**
  * ゲームのライフサイクル管理を行う専用クラス
@@ -53,7 +54,7 @@ export class GameLifecycleManager {
    * ゲームを再開始（リセット）
    */
   public restart(): void {
-
+    Logger.debug('GameLifecycleManager: restart called')
     this.gameLogic.reset()
     this.renderer.updateDisplay()
   }
@@ -62,14 +63,13 @@ export class GameLifecycleManager {
    * 難易度を変更してゲームを再初期化（アニメーション付き）
    */
   public async changeDifficulty(difficulty: Difficulty): Promise<void> {
-    if (difficulty === this.currentDifficulty) {
-
-      return
-    }
+    Logger.debug(`GameLifecycleManager: changeDifficulty called with ${difficulty}`)
     
 
     
     try {
+      Logger.debug('GameLifecycleManager: Starting difficulty change process')
+      
       // レベル変更状態を設定（新しいGridEventHandlerが無効状態で作成されるように）
       GameStateFlags.getInstance().setLevelChanging(true)
       
@@ -83,40 +83,46 @@ export class GameLifecycleManager {
       }
       
       // 2. 現在のゲーム状態をクリーンアップ
+      Logger.debug('GameLifecycleManager: Starting cleanup')
       await this.cleanup()
+      Logger.debug('GameLifecycleManager: Cleanup completed')
       
       // 3. 新しい難易度でゲームを再構築
+      Logger.debug('GameLifecycleManager: Starting reinitializeWithDifficulty')
       this.currentDifficulty = difficulty
       await this.reinitializeWithDifficulty(difficulty)
+      Logger.debug('GameLifecycleManager: reinitializeWithDifficulty completed')
       
       // 4. 新しいグリッドをフェードイン
       if (this.renderer) {
         await this.renderer.completeAnimateLevelChange()
       }
       
-      // 5. レベル変更完了処理（単一のタイムアウトで確実に実行）
-      setTimeout(() => {
-
+      // 5. レベル変更完了処理（即座に実行してUIを有効化）
+      if (this.uiCoordinator) {
+        // 新しいGridEventHandlerを確実に接続
+        Logger.debug('GameLifecycleManager: Connecting GridEventHandler to UICoordinator')
+        this.uiCoordinator.setGridEventHandler(this.renderer.getEventHandler())
         
-        if (this.uiCoordinator) {
-          // 新しいGridEventHandlerを確実に接続
-          this.uiCoordinator.setGridEventHandler(this.renderer.getEventHandler())
-          
-          // レベル変更状態をリセットしてからグリッドを有効化
-          GameStateFlags.getInstance().setLevelChanging(false)
-          this.uiCoordinator.enableGridAfterLevelChange()
-          
-
-        }
-      }, 300) // アニメーション完了を確実に待つ
+        // レベル変更状態をリセットしてからグリッドを有効化
+        GameStateFlags.getInstance().setLevelChanging(false)
+        this.uiCoordinator.enableGridAfterLevelChange()
+        
+        Logger.debug('GameLifecycleManager: Level change completed, grid enabled')
+      }
       
     } catch (error) {
       // エラー時もレベル変更状態をリセット
       GameStateFlags.getInstance().setLevelChanging(false)
-      console.error('❌ GameLifecycleManager: Failed to change difficulty:', error)
+      Logger.error('GameLifecycleManager: Failed to change difficulty', error)
       throw new Error(`難易度変更に失敗しました: ${error}`)
     }
   }
+  
+  /**
+   * リスタート通知を表示
+   */
+
   
   /**
    * 現在の難易度を取得
@@ -153,7 +159,7 @@ export class GameLifecycleManager {
 
       
     } catch (error) {
-      console.error('GameLifecycleManager: Error during destruction:', error)
+      Logger.error('GameLifecycleManager: Error during destruction', error)
     }
   }
   
@@ -180,17 +186,27 @@ export class GameLifecycleManager {
       const components = await GameBootstrapper.initialize(this.container, difficulty)
       
       // 新しいコンポーネントで自分自身のプロパティを更新
+      const oldGameLogic = this.gameLogic
       this.gameLogic = components.gameLogic
+      Logger.debug(`GameLifecycleManager: GameLogic updated from ${oldGameLogic ? 'existing' : 'null'} to new instance`)
+      
       this.renderer = components.renderer
       this.gameUI = components.gameUI
       this.gameStateWatcher = components.gameStateWatcher
       this.soundManager = components.soundManager
       this.domHandler = components.domHandler
+      
+      // 新しいUICoordinatorを作成し、即座に新しいGameLogicで初期化
       this.uiCoordinator = new GameUICoordinator(components.levelSelector, components.statsModal)
       this.uiCoordinator.setAchievementButton(components.achievementButton)
       this.uiCoordinator.setAchievementModal(components.achievementModal)
       
-      // レベル変更中なので、GridEventHandlerとの接続前に状態を確保
+      // 新しいStatsModalに新しいGameLogicを確実に設定
+      Logger.debug('GameLifecycleManager: Setting new GameLogic to new StatsModal')
+      this.uiCoordinator.updateStatsModalGameLogic(this.gameLogic)
+      Logger.debug('GameLifecycleManager: StatsModal now has new GameLogic reference')
+      
+      // レベル変更中なので、GridEventHandlerとの接続前に状態を確認
       const newGridEventHandler = components.renderer.getEventHandler()
 
       
@@ -207,10 +223,17 @@ export class GameLifecycleManager {
         this.onReinitializeCallback(components)
       }
       
-
+      // コールバック設定後bUICoordinatorを確実に初期化
+      this.uiCoordinator.markAsInitialized()
+      Logger.debug('GameLifecycleManager: GameUICoordinator marked as initialized after callback setup')
+      
+      // GameStateWatcherが確実にコールバックを持つことを確認
+      Logger.debug('GameLifecycleManager: Checking GameStateWatcher callbacks after reinitialize')
+      
+      Logger.debug('GameLifecycleManager: Reinitialize completed with new components')
       
     } catch (error) {
-      console.error('GameLifecycleManager: Failed to reinitialize with difficulty:', error)
+      Logger.error('GameLifecycleManager: Failed to reinitialize with difficulty', error)
       throw error
     }
   }

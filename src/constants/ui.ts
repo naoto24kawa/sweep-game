@@ -9,6 +9,37 @@ export const UI_CONSTANTS = {
     LEVEL_SELECTOR_DELAY: 100,
   },
   
+  TIMING: {
+    /** 遅延処理のタイミング定数 */
+    DELAYS: {
+      /** レベル選択表示の遅延 */
+      LEVEL_SELECTOR_SHOW: 50,
+      /** 統計モーダル非表示の遅延 */
+      STATS_MODAL_HIDE: 100, 
+      /** 再開時のモーダルリセット遅延 */
+      RESTART_MODAL_RESET: 200,
+      /** レベル変更完了の遅延 */
+      LEVEL_CHANGE_COMPLETE: 300,
+      /** モーダル表示遅延 */
+      MODAL_SHOW: 50,
+      /** ゲーム状態更新遅延 */
+      GAME_STATE_UPDATE: 100,
+    },
+    /** アニメーション関連のタイミング */
+    ANIMATIONS: {
+      /** セル開放アニメーション時間 */
+      REVEAL_DURATION: 200,
+      /** フラグ設置アニメーション時間 */
+      FLAG_DURATION: 150,
+      /** フェードアニメーション時間 */
+      FADE_DURATION: 300,
+      /** 短い遷移時間 */
+      QUICK_TRANSITION: 100,
+      /** 標準的な遷移時間 */
+      STANDARD_TRANSITION: 200,
+    }
+  },
+  
   HEADER: {
     /** ヘッダーの高さ（px） */
     HEIGHT: 80,

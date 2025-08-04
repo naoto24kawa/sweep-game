@@ -1,6 +1,7 @@
 import * as PIXI from 'pixi.js'
 import { Difficulty } from '@/types'
 import { GameStateFlags } from '@/core/GameStateFlags'
+import { UI_CONSTANTS } from '@/constants/ui'
 
 interface LevelSelectorOptions {
   onLevelSelect: (difficulty: Difficulty) => void
@@ -286,7 +287,7 @@ export class LevelSelector {
       if (this.options.onLevelSelect) {
         this.options.onLevelSelect(difficulty)
       }
-    }, 100)
+    }, UI_CONSTANTS.TIMING.DELAYS.GAME_STATE_UPDATE)
   }
 
   /**

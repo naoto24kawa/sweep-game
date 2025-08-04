@@ -2,6 +2,7 @@ import * as PIXI from 'pixi.js'
 import { StatsManager } from '@/stats/StatsManager'
 import { GameLogic } from '@/game/GameLogic'
 import { GameState } from '@/types'
+import { Logger } from '@/core/Logger'
 // NEON_COLORSは数値で直接指定するため削除
 
 interface StatsModalOptions {
@@ -114,24 +115,46 @@ export class StatsModal {
     const fontSize = Math.min(14, modalWidth / 28)
     const lineHeight = fontSize + 4
 
-    // ゲーム結果
-    const resultText = this.createText(
-      `Difficulty: ${config.difficulty} | Time: ${this.formatTime(gameStats.elapsedTime)}`,
+    // 現在のゲーム状態を明確に表示
+    let gameStatusText = ''
+    let statusColor = 0xffffff
+    
+    if (gameStats.startTime === null) {
+      gameStatusText = '🎮 新しいゲーム開始準備完了!'
+      statusColor = 0x00ff41
+    } else if (gameStats.endTime === null) {
+      gameStatusText = `🎯 プレイ中: ${this.formatTime(gameStats.elapsedTime)}`
+      statusColor = 0x00ffff
+    } else {
+      const gameState = this.gameLogic.getGameState()
+      const result = gameState === GameState.SUCCESS ? '🎉 成功!' : '💥 失敗'
+      gameStatusText = `${result} 時間: ${this.formatTime(gameStats.elapsedTime)}`
+      statusColor = gameState === GameState.SUCCESS ? 0x00ff41 : 0xff0040
+    }
+
+    const statusText = this.createText(gameStatusText, fontSize + 2, statusColor)
+    statusText.anchor.set(0.5)
+    statusText.y = contentY
+    this.modalContainer.addChild(statusText)
+
+    // 難易度表示
+    const difficultyText = this.createText(
+      `難易度: ${config.difficulty}`,
       fontSize,
-      0xffffff
+      0xcccccc
     )
-    resultText.anchor.set(0.5)
-    resultText.y = contentY
-    this.modalContainer.addChild(resultText)
+    difficultyText.anchor.set(0.5)
+    difficultyText.y = contentY + lineHeight
+    this.modalContainer.addChild(difficultyText)
 
     // 現在のゲームスコア
     const currentScoreText = this.createText(
-      `Score: ${gameStats.score.toLocaleString()}`,
-      fontSize + 2,
+      `現在のスコア: ${gameStats.score.toLocaleString()}`,
+      fontSize + 1,
       0x00ffff
     )
     currentScoreText.anchor.set(0.5)
-    currentScoreText.y = contentY + lineHeight
+    currentScoreText.y = contentY + lineHeight * 2
     this.modalContainer.addChild(currentScoreText)
 
     // 統計情報（2列レイアウト）
@@ -361,6 +384,14 @@ export class StatsModal {
     if (callbacks.onLevelSelect) {
       this.options.onLevelSelect = callbacks.onLevelSelect
     }
+  }
+  
+  /**
+   * GameLogicインスタンスを更新（難易度変更時）
+   */
+  public updateGameLogic(newGameLogic: GameLogic): void {
+    this.gameLogic = newGameLogic
+    Logger.debug('StatsModal: GameLogic updated to new instance')
   }
 
   public show(): void {

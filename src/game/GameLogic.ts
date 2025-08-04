@@ -1,4 +1,5 @@
 import { GameState, GameConfig, Cell, CellState, GameStats, ScoreConfig, SCORE_CONFIGS } from '@/types'
+import { Logger } from '@/core/Logger'
 
 export class GameLogic {
   private config: GameConfig
@@ -52,6 +53,8 @@ export class GameLogic {
    * @param excludeY 最初にクリックされたセルのY座標（地雷を配置しない）
    */
   private placeMines(excludeX: number, excludeY: number): void {
+    Logger.debug(`GameLogic: Placing mines, excluding first click at (${excludeX}, ${excludeY})`)
+    
     // 最初のクリック位置を除く全セルを候補として収集
     const availableCells: { x: number; y: number }[] = []
 
@@ -64,13 +67,17 @@ export class GameLogic {
     }
 
     // Fisher-Yates風アルゴリズムでランダムに地雷を配置
+    const minePositions: string[] = []
     for (let i = 0; i < this.config.mines; i++) {
       if (availableCells.length === 0) break
       
       const randomIndex = Math.floor(Math.random() * availableCells.length)
       const { x, y } = availableCells.splice(randomIndex, 1)[0]
       this.cells[y][x].isMine = true
+      minePositions.push(`(${x},${y})`)
     }
+    
+    Logger.debug(`GameLogic: Placed ${minePositions.length} mines at: ${minePositions.join(', ')}`)
 
     // 地雷配置完了後、各セルの隣接地雷数を計算
     this.calculateAdjacentMines()
@@ -114,6 +121,8 @@ export class GameLogic {
   }
 
   public revealCell(x: number, y: number): boolean {
+    Logger.debug(`GameLogic: Revealing cell at (${x}, ${y})`)
+    
     if (!this.isValidCell(x, y) || this.gameState !== GameState.ACTIVE && this.gameState !== GameState.READY) {
       return false
     }

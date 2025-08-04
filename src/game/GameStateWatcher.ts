@@ -1,8 +1,10 @@
 import { GameState } from '@/types'
 import type { GameLogic } from './GameLogic'
-import type { SoundManager, SoundType } from '@/audio/SoundManager'
+import type { SoundManager } from '@/audio/SoundManager'
+import { SoundType } from '@/audio/SoundManager'
 import type { StatsManager } from '@/stats/StatsManager'
 import type { EffectManager } from '@/effects/EffectManager'
+import { Logger } from '@/core/Logger'
 
 
 interface GameStateWatcherCallbacks {
@@ -58,15 +60,19 @@ export class GameStateWatcher {
    * コールバック関数を動的に更新
    */
   updateCallbacks(callbacks: Partial<GameStateWatcherCallbacks>): void {
-
+    Logger.debug('GameStateWatcher: Updating callbacks', { 
+      hasOnGameSuccess: !!callbacks.onGameSuccess,
+      hasOnGameFailed: !!callbacks.onGameFailed 
+    })
     this.callbacks = { ...this.callbacks, ...callbacks }
   }
 
   private handleGameStateChange(oldState: GameState, newState: GameState): void {
+    Logger.debug(`GameStateWatcher: State change ${oldState} -> ${newState}`)
     switch (newState) {
       case GameState.ACTIVE:
         if (oldState === GameState.READY) {
-          this.soundManager.play('CLICK' as SoundType)
+          this.soundManager.play(SoundType.CLICK)
         }
         break
 
@@ -81,18 +87,18 @@ export class GameStateWatcher {
 
         // エフェクト完了後にStatsModalを表示
         setTimeout(() => {
-
+          Logger.debug('GameStateWatcher: SUCCESS timeout reached, checking callback')
           if (this.callbacks.onGameSuccess) {
-
+            Logger.debug('GameStateWatcher: Calling onGameSuccess callback')
             this.callbacks.onGameSuccess()
           } else {
-            console.warn('⚠️ onGameSuccess callback is not set!')
+            Logger.warn('onGameSuccess callback is not set!')
           }
         }, 2000) // 2秒後に表示（エフェクトが落ち着いてから）
         break
 
       case GameState.FAILED:
-        this.soundManager.play('EXPLOSION' as SoundType)
+        this.soundManager.play(SoundType.EXPLOSION)
         this.recordGameResult(false)
         
         // 敗北エフェクトを表示

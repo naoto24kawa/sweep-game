@@ -1,4 +1,6 @@
 import { GridEventHandler } from '@/renderer/GridEventHandler'
+import { Logger } from '@/core/Logger'
+import { UI_CONSTANTS } from '@/constants/ui'
 
 /**
  * モーダル表示時のイベント制御を専門に管理するクラス
@@ -60,7 +62,7 @@ export class ModalEventController {
           this.gridEventHandler.setModalActive(false)
         }
         this.pendingHideTimeout = null
-      }, 100) // 遅延を300msから100msに短縮
+      }, UI_CONSTANTS.TIMING.DELAYS.STATS_MODAL_HIDE)
     }
   }
   
@@ -112,7 +114,7 @@ export class ModalEventController {
         if (this.gridEventHandler) {
           this.gridEventHandler.setModalActive(false)
         }
-      }, 200)
+      }, UI_CONSTANTS.TIMING.DELAYS.RESTART_MODAL_RESET)
     }
   }
   
@@ -123,29 +125,29 @@ export class ModalEventController {
    * レベル変更後にグリッドイベントを有効化
    */
   public enableGridAfterLevelChange(): void {
-    console.log('🎯 ModalEventController: Enabling grid after level change')
+    Logger.ui('ModalEventController: Enabling grid after level change')
     
     // 保留中の非表示処理をキャンセル
     if (this.pendingHideTimeout) {
       clearTimeout(this.pendingHideTimeout)
       this.pendingHideTimeout = null
-      console.log('🎯 ModalEventController: Cancelled pending hide timeout')
+      Logger.ui('ModalEventController: Cancelled pending hide timeout')
     }
     
     // グリッドイベントを有効化
     if (this.gridEventHandler) {
-      console.log('🎯 ModalEventController: Setting grid modal active to false')
+      Logger.ui('ModalEventController: Setting grid modal active to false')
       this.gridEventHandler.setModalActive(false)
       
       // レベル変更直後の状態を確認
       setTimeout(() => {
         if (this.gridEventHandler) {
           const modalState = this.gridEventHandler.getModalActive()
-          console.log(`🎯 ModalEventController: Final grid modal state: ${modalState}`)
+          Logger.ui(`ModalEventController: Final grid modal state: ${modalState}`)
         }
-      }, 50)
+      }, UI_CONSTANTS.TIMING.DELAYS.MODAL_SHOW)
     } else {
-      console.warn('⚠️ ModalEventController: No grid event handler available for enabling')
+      Logger.warn('ModalEventController: No grid event handler available for enabling')
     }
   }
 }

@@ -3,6 +3,7 @@ import { StatsModal } from '@/ui/StatsModal'
 import { AchievementButton } from '@/ui/AchievementButton'
 import { AchievementModal } from '@/ui/AchievementModal'
 import { ModalEventController } from '@/ui/ModalEventController'
+import { Logger } from '@/core/Logger'
 
 /**
  * UIモーダル表示の統合管理を行う専用クラス
@@ -34,6 +35,14 @@ export class GameUICoordinator {
   public setGridEventHandler(gridEventHandler: any): void {
     this.modalEventController.setGridEventHandler(gridEventHandler)
   }
+  
+  /**
+   * StatsModalのGameLogicインスタンスを更新
+   */
+  public updateStatsModalGameLogic(newGameLogic: any): void {
+    this.statsModal.updateGameLogic(newGameLogic)
+    Logger.debug('GameUICoordinator: StatsModal GameLogic updated')
+  }
 
   /**
    * レベル選択画面を表示
@@ -53,7 +62,7 @@ export class GameUICoordinator {
         this.levelSelector.show()
       }, 50)
     } else {
-      console.warn('GameUICoordinator: Cannot show level selector - not initialized')
+      Logger.warn('GameUICoordinator: Cannot show level selector - not initialized')
     }
   }
   
@@ -61,11 +70,17 @@ export class GameUICoordinator {
    * 統計モーダルを表示
    */
   public showStatsModal(): void {
+    Logger.debug('GameUICoordinator: showStatsModal called', {
+      hasStatsModal: !!this.statsModal,
+      isInitialized: this.isInitialized
+    })
+    
     if (this.statsModal && this.isInitialized) {
+      Logger.debug('GameUICoordinator: Showing stats modal')
       this.modalEventController.onModalShow()
       this.statsModal.show()
     } else {
-      console.warn('GameUICoordinator: Cannot show stats modal - not initialized')
+      Logger.warn('GameUICoordinator: Cannot show stats modal - not initialized')
     }
   }
 
@@ -105,7 +120,7 @@ export class GameUICoordinator {
       this.modalEventController.onModalShow()
       this.achievementModal.show()
     } else {
-      console.warn('GameUICoordinator: Cannot show achievement modal - not initialized')
+      Logger.warn('GameUICoordinator: Cannot show achievement modal - not initialized')
     }
   }
   
@@ -120,6 +135,7 @@ export class GameUICoordinator {
    * モーダル状態をリセット（リスタート時に使用）
    */
   public resetModalState(): void {
+    Logger.debug('GameUICoordinator: resetModalState called')
     this.modalEventController.restartModalState()
   }
 
