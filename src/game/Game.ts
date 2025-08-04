@@ -79,16 +79,11 @@ export class Game {
    * イベントハンドラーを設定（コールバック関数の接続）
    */
   private setupEventHandlers(components: any): void {
-    console.log('🔧 Game: Setting up event handlers', {
-      hasLevelSelector: !!components.levelSelector,
-      hasStatsModal: !!components.statsModal,
-      hasEventManager: !!components.eventManager,
-      hasGameStateWatcher: !!components.gameStateWatcher
-    })
+
     
     // UIコーディネーターが新しく作成された場合は更新
     if (components.uiCoordinator && components.uiCoordinator !== this.uiCoordinator) {
-      console.log('🔄 Game: Updating UICoordinator reference')
+
       this.uiCoordinator = components.uiCoordinator
     }
     
@@ -104,17 +99,17 @@ export class Game {
     })
     
     // EventManagerのコールバックを更新
-    console.log('🔧 Game: Setting EventManager callbacks')
-    console.log('🔧 Game: Before assignment - restartCallback exists:', !!components.eventManager.restartCallback)
+
+
     components.eventManager.restartCallback = () => {
-      console.log('🔄 Game: Restart callback invoked')
+
       this.restart()
     }
     components.eventManager.showLevelSelectorCallback = () => {
-      console.log('📋 Game: Show level selector callback invoked')
+
       this.showLevelSelector()
     }
-    console.log('🔧 Game: After assignment - restartCallback exists:', !!components.eventManager.restartCallback)
+
     
     // GameStateWatcherのコールバックを更新
     components.gameStateWatcher.updateCallbacks({
@@ -122,7 +117,7 @@ export class Game {
       onGameFailed: () => this.showStatsModal()
     })
     
-    console.log('✅ Game: Event handlers setup complete')
+
   }
 
   /**

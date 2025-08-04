@@ -23,7 +23,7 @@ export class GridEventHandler {
     initialModalActive: boolean = false
   ) {
     this.isModalActive = initialModalActive
-    console.log(`🔧 GridEventHandler: Initialized with modalActive=${initialModalActive}`)
+
   }
 
   private gridOffset = { x: 0, y: 0 }  // グリッドコンテナのオフセット
@@ -33,12 +33,7 @@ export class GridEventHandler {
    * @param gridContainer PIXIグリッドコンテナ
    */
   public setupEventHandlers(gridContainer: PIXI.Container): void {
-    console.log('🔧 Setting up event handlers on grid container:', {
-      children: gridContainer.children.length,
-      eventMode: gridContainer.eventMode,
-      interactive: gridContainer.interactive,
-      visible: gridContainer.visible
-    })
+
     
     // グリッドの実際の位置を記録
     this.updateGridOffset(gridContainer)
@@ -48,11 +43,7 @@ export class GridEventHandler {
     this.registerHoverHandlers(gridContainer)
     this.registerContextMenuHandlers(gridContainer)
     
-    console.log('✅ Event handlers setup complete. Container state:', {
-      eventMode: gridContainer.eventMode,
-      interactive: gridContainer.interactive,
-      listenerCount: gridContainer.listenerCount('pointerdown')
-    })
+
   }
 
   /**
@@ -97,15 +88,11 @@ export class GridEventHandler {
    * @param event PIXIポインターイベント
    */
   private handlePointerDown(event: PIXI.FederatedPointerEvent): void {
-    console.log('⬇️ PIXI PointerDown event received:', {
-      button: event.button,
-      type: event.type,
-      isModalActive: this.isModalActive
-    })
+
     
     // 右クリック（button=2）をここで処理
     if (event.button === 2) {
-      console.log('🖱️ Right click detected via pointerdown')
+
       this.rightClickProcessed = true // フラグを設定
       this.handleRightClick(event)
       
@@ -121,11 +108,7 @@ export class GridEventHandler {
    * @param event PIXIポインターイベント
    */
   private handlePointerUp(event: PIXI.FederatedPointerEvent): void {
-    console.log('⬆️ PIXI PointerUp event received:', {
-      button: event.button,
-      type: event.type,
-      isModalActive: this.isModalActive
-    })
+
     
     // 左クリック（button=0）のみ処理
     if (event.button === 0) {
@@ -146,30 +129,25 @@ export class GridEventHandler {
    * @param event PIXIポインターイベント
    */
   private handleLeftClick(event: PIXI.FederatedPointerEvent): void {
-    console.log('👆 Left click processing:', {
-      isModalActive: this.isModalActive,
-      isTemporarilyDisabled: this.isTemporarilyDisabled,
-      button: event.button,
-      type: event.type
-    })
+
     
     if (this.isModalActive) {
-      console.log('🚫 Left click blocked - modal is active')
+
       return
     }
     
     if (this.isTemporarilyDisabled) {
-      console.log('🚫 Left click blocked - temporarily disabled for level change')
+
       return
     }
     
     const cellInfo = this.extractCellInfoFromEvent(event)
-    console.log('🎯 Cell info extracted:', cellInfo ? `${cellInfo.coordinates.x},${cellInfo.coordinates.y}` : 'null')
+
     
     if (!cellInfo) return
     
     const actionResult = this.processUserAction(0, cellInfo) // 左クリック
-    console.log('🎮 Action result:', actionResult)
+
     
     if (actionResult.shouldPlayEffect) {
       this.playInteractionEffects(actionResult, cellInfo)
@@ -182,39 +160,33 @@ export class GridEventHandler {
    * @param event PIXIポインターイベント
    */
   private handleRightClick(event: PIXI.FederatedPointerEvent): void {
-    console.log('🖱️ Right click detected', {
-      isModalActive: this.isModalActive,
-      isTemporarilyDisabled: this.isTemporarilyDisabled,
-      button: event.button,
-      type: event.type,
-      rightClickProcessed: this.rightClickProcessed
-    })
+
     
     // 重複処理をチェック
     if (this.rightClickProcessed && event.type !== 'pointerdown') {
-      console.log('🚫 Right click blocked - already processed')
+
       return
     }
     
     event.preventDefault()
     
     if (this.isModalActive) {
-      console.log('🚫 Right click blocked - modal is active')
+
       return
     }
     
     if (this.isTemporarilyDisabled) {
-      console.log('🚫 Right click blocked - temporarily disabled for level change')
+
       return
     }
     
     const cellInfo = this.extractCellInfoFromEvent(event)
-    console.log('🎯 Cell info extracted:', cellInfo ? `${cellInfo.coordinates.x},${cellInfo.coordinates.y}` : 'null')
+
     
     if (!cellInfo) return
     
     const actionResult = this.processUserAction(2, cellInfo) // 右クリック
-    console.log('🎮 Action result:', actionResult)
+
     
     if (actionResult.shouldPlayEffect) {
       this.playInteractionEffects(actionResult, cellInfo)
@@ -229,49 +201,39 @@ export class GridEventHandler {
    */
   private extractCellInfoFromEvent(event: PIXI.FederatedPointerEvent): CellClickInfo | null {
     if (!event.target) {
-      console.warn('⚠️ Event target is undefined')
+
       return null
     }
     
     // gameLogicが存在することを確認
     if (!this.gameLogic) {
-      console.warn('⚠️ GameLogic is undefined')
+
       return null
     }
     
     const cellContainer = this.findCellContainer(event.target as PIXI.Container)
     if (!cellContainer?.label) {
-      console.warn('⚠️ Cell container or label is undefined')
+
       return null
     }
 
     const coordinates = this.parseCellCoordinates(cellContainer.label)
-    console.log('🔍 Parsed coordinates:', { label: cellContainer.label, coordinates })
+
     
     const cells = this.gameLogic.getCells()
     
     // cells配列が存在することを確認
     if (!cells || !Array.isArray(cells)) {
-      console.warn('⚠️ Cells array is undefined or not an array:', cells)
+
       return null
     }
     
-    console.log('🔍 Cells array info:', { 
-      cellsLength: cells.length, 
-      firstRowLength: cells[0]?.length,
-      coordinates,
-      cellContainer: cellContainer.label 
-    })
+
     
     // セル配列の境界チェック
     if (coordinates.y < 0 || coordinates.y >= cells.length || 
         coordinates.x < 0 || !cells[coordinates.y] || coordinates.x >= cells[coordinates.y].length) {
-      console.warn('⚠️ Cell coordinates out of bounds:', { 
-        coordinates, 
-        cellsLength: cells.length,
-        rowLength: cells[coordinates.y]?.length,
-        label: cellContainer.label
-      })
+
       return null
     }
     
@@ -296,7 +258,7 @@ export class GridEventHandler {
     // 最大3階層まで親を遡ってセルコンテナを探す
     for (let i = 0; i < 3; i++) {
       if (current?.label && typeof current.label === 'string' && current.label.includes('-')) {
-        console.log('🔍 Found cell container:', { label: current.label, level: i })
+
         return current
       }
       
@@ -304,12 +266,7 @@ export class GridEventHandler {
       current = current.parent as PIXI.Container
     }
     
-    console.warn('⚠️ Could not find cell container for target:', {
-      targetLabel: target.label,
-      targetType: target.constructor.name,
-      parentLabel: target.parent?.label,
-      parentType: target.parent?.constructor.name
-    })
+
     
     return null
   }
@@ -322,7 +279,7 @@ export class GridEventHandler {
   private parseCellCoordinates(label: string): { x: number; y: number } {
     const parts = label.split('-')
     if (parts.length !== 2) {
-      console.warn('⚠️ Invalid cell label format:', label)
+
       return { x: -1, y: -1 } // 無効な座標を返す
     }
     
@@ -330,7 +287,7 @@ export class GridEventHandler {
     const y = parseInt(parts[1], 10)
     
     if (isNaN(x) || isNaN(y)) {
-      console.warn('⚠️ Invalid cell coordinates in label:', { label, x, y })
+
       return { x: -1, y: -1 } // 無効な座標を返す
     }
     
@@ -438,7 +395,7 @@ export class GridEventHandler {
    * @param isActive モーダルがアクティブかどうか
    */
   public setModalActive(isActive: boolean): void {
-    console.log(`🔄 Modal state changed: ${this.isModalActive} → ${isActive}`)
+
     this.isModalActive = isActive
   }
 
@@ -455,12 +412,12 @@ export class GridEventHandler {
    * pointerupイベントのクリックスルーを防ぐ
    */
   public temporarilyDisableEvents(): void {
-    console.log('🚫 Temporarily disabling grid events for level change')
+
     this.isTemporarilyDisabled = true
     // 500ms後に再有効化
     setTimeout(() => {
       this.isTemporarilyDisabled = false
-      console.log('✅ Grid events re-enabled after level change')
+
     }, 500)
   }
 }

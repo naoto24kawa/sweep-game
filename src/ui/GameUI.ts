@@ -160,7 +160,7 @@ export class GameUI {
    * グリッド情報を設定（レイアウト計算に使用）
    */
   public setGridInfo(x: number, y: number, width: number, height: number): void {
-    console.log('🎯 GameUI: Received grid info:', { x, y, width, height })
+
     this.layout.setGridInfo(x, y, width, height)
     // グリッド情報変更時にUIを再配置
     this.updateUILayout()
@@ -184,7 +184,7 @@ export class GameUI {
     this.scoreText.x = scorePosition.x
     this.scoreText.y = scorePosition.y
     
-    console.log('🎯 GameUI: Updated score position (between timer and grid):', { x: scorePosition.x, y: scorePosition.y })
+
   }
   
   /**

@@ -22,7 +22,7 @@ export class GameUILayout {
    */
   public setGridInfo(x: number, y: number, width: number, height: number): void {
     this.gridPosition = { x, y, width, height }
-    console.log('🎯 GameUILayout: Grid info updated:', this.gridPosition)
+
   }
   
   /**
@@ -85,7 +85,7 @@ export class GameUILayout {
         this.gridPosition.y - headerHeight - headerMargin
       )
       
-      console.log('🎯 GameUILayout: Container position (grid-based):', { x, y, gridY: this.gridPosition.y })
+
       return { x, y }
     }
     
@@ -105,10 +105,7 @@ export class GameUILayout {
       gridTopPosition - headerHeight - headerMargin
     )
     
-    console.log('🎯 GameUILayout: Container position (fallback):', { 
-      x, y, gridTopPosition, headerHeight, headerMargin,
-      calculation: `${gridTopPosition} - ${headerHeight} - ${headerMargin} = ${gridTopPosition - headerHeight - headerMargin}`
-    })
+
     return { x, y }
   }
   
@@ -138,11 +135,11 @@ export class GameUILayout {
     // X座標：画面中央
     const x = screenWidth / 2 // アンカーが0.5なので中央座標
     
-    console.log('🎯 GameUILayout: Score calculation - gridPosition exists:', !!this.gridPosition)
+
     
     if (this.gridPosition) {
       // グリッド情報ベースの計算
-      console.log('🎯 GameUILayout: Using grid-based calculation')
+
       
       // タイマーコンテナの位置を正しく計算
       const containerPosition = this.calculateContainerPosition()
@@ -152,16 +149,14 @@ export class GameUILayout {
       
       // 利用可能なスペースを計算
       const totalGap = gridTopY - timerBottomY
-      console.log('🎯 GameUILayout: Available space:', { timerBottomY, gridTopY, totalGap })
+
       
       if (totalGap < 30) {
         // スペースが狭すぎる場合は、グリッドに被らない安全な位置に配置
         const textHalfHeight = scoreTextHeight / 2
         const safeY = gridTopY - textHalfHeight - UI_CONSTANTS.SPACING.TINY // グリッドから5px離す
         const finalY = Math.max(timerBottomY + UI_CONSTANTS.SPACING.TINY, safeY) // タイマーからも最低5px離す
-        console.log('🎯 GameUILayout: Insufficient space, using safe position:', { 
-          finalY, totalGap, safeY, textHalfHeight, gridTopY 
-        })
+
         return { x, y: finalY }
       }
       
@@ -183,15 +178,12 @@ export class GameUILayout {
       const maxScoreY = gridTopY - (scoreTextHeight / 2) - bottomMargin
       const finalY = (minScoreY + maxScoreY) / 2
       
-      console.log('🎯 GameUILayout: Grid-based score position:', { 
-        x, y: finalY, timerBottomY, gridTopY, minScoreY, maxScoreY, topMargin, bottomMargin,
-        totalGap, requiredSpace, availableSpace: maxScoreY - minScoreY
-      })
+
       return { x, y: finalY }
     }
     
     // フォールバック計算
-    console.log('🎯 GameUILayout: Using fallback calculation')
+
     const containerPosition = this.calculateContainerPosition()
     const timerBottomY = containerPosition.y + UI_CONSTANTS.HEADER.HEIGHT
     const gridTopY = this.getGridTopPosition()
@@ -199,16 +191,14 @@ export class GameUILayout {
     
     // 利用可能なスペースを計算（フォールバック）
     const totalGap = gridTopY - timerBottomY
-    console.log('🎯 GameUILayout: Fallback available space:', { timerBottomY, gridTopY, totalGap })
+
     
     if (totalGap < 30) {
       // スペースが狭すぎる場合は、グリッドに被らない安全な位置に配置
       const textHalfHeight = scoreTextHeight / 2
       const safeY = gridTopY - textHalfHeight - UI_CONSTANTS.SPACING.TINY // グリッドから5px離す
       const finalY = Math.max(timerBottomY + UI_CONSTANTS.SPACING.TINY, safeY) // タイマーからも最低5px離す
-      console.log('🎯 GameUILayout: Fallback insufficient space, using safe position:', { 
-        finalY, totalGap, safeY, textHalfHeight, gridTopY 
-      })
+
       return { x, y: finalY }
     }
     
@@ -228,19 +218,7 @@ export class GameUILayout {
     const maxScoreY = gridTopY - (scoreTextHeight / 2) - bottomMargin
     const finalY = (minScoreY + maxScoreY) / 2
     
-    console.log('🎯 GameUILayout: Score position (with margins):', { 
-      x, 
-      y: finalY,
-      timerBottomY,
-      gridTopY,
-      minScoreY,
-      maxScoreY,
-      topMargin,
-      bottomMargin,
-      scoreTextHeight,
-      availableGap: maxScoreY - minScoreY,
-      totalGapSize: gridTopY - timerBottomY
-    })
+
     
     return { x, y: finalY }
   }

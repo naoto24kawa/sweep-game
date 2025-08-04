@@ -53,7 +53,7 @@ export class GameLifecycleManager {
    * ゲームを再開始（リセット）
    */
   public restart(): void {
-    console.log('GameLifecycleManager: Restarting game')
+
     this.gameLogic.reset()
     this.renderer.updateDisplay()
   }
@@ -63,18 +63,18 @@ export class GameLifecycleManager {
    */
   public async changeDifficulty(difficulty: Difficulty): Promise<void> {
     if (difficulty === this.currentDifficulty) {
-      console.log('GameLifecycleManager: Same difficulty selected, ignoring')
+
       return
     }
     
-    console.log(`🔄 GameLifecycleManager: Changing difficulty from ${this.currentDifficulty} to ${difficulty}`)
+
     
     try {
       // レベル変更状態を設定（新しいGridEventHandlerが無効状態で作成されるように）
       GameStateFlags.getInstance().setLevelChanging(true)
       
       // レベル変更中はグリッドイベントを完全に無効化
-      console.log('🔄 GameLifecycleManager: Disabling grid events for level change')
+
       this.uiCoordinator.resetModalStateForLevelChange()
       
       // 1. 現在のグリッドをフェードアウト
@@ -96,7 +96,7 @@ export class GameLifecycleManager {
       
       // 5. レベル変更完了処理（単一のタイムアウトで確実に実行）
       setTimeout(() => {
-        console.log('🔄 GameLifecycleManager: Finalizing level change')
+
         
         if (this.uiCoordinator) {
           // 新しいGridEventHandlerを確実に接続
@@ -106,7 +106,7 @@ export class GameLifecycleManager {
           GameStateFlags.getInstance().setLevelChanging(false)
           this.uiCoordinator.enableGridAfterLevelChange()
           
-          console.log('🔄 GameLifecycleManager: Level change completed successfully')
+
         }
       }, 300) // アニメーション完了を確実に待つ
       
@@ -129,7 +129,7 @@ export class GameLifecycleManager {
    * ゲームアプリケーション全体を破棄
    */
   public destroy(): void {
-    console.log('GameLifecycleManager: Destroying game')
+
     
     try {
       if (this.gameStateWatcher) {
@@ -150,7 +150,7 @@ export class GameLifecycleManager {
       // DOMコンテナをクリア
       this.domHandler.clearContainer()
       
-      console.log('GameLifecycleManager: Destruction completed')
+
       
     } catch (error) {
       console.error('GameLifecycleManager: Error during destruction:', error)
@@ -192,7 +192,7 @@ export class GameLifecycleManager {
       
       // レベル変更中なので、GridEventHandlerとの接続前に状態を確保
       const newGridEventHandler = components.renderer.getEventHandler()
-      console.log('🔧 GameLifecycleManager: Connecting new GridEventHandler, current modalActive:', newGridEventHandler.getModalActive())
+
       
       this.uiCoordinator.setGridEventHandler(newGridEventHandler)
       // レベル変更中は明示的に無効状態を維持
@@ -207,7 +207,7 @@ export class GameLifecycleManager {
         this.onReinitializeCallback(components)
       }
       
-      console.log(`GameLifecycleManager: Successfully reinitialized with ${difficulty} difficulty`)
+
       
     } catch (error) {
       console.error('GameLifecycleManager: Failed to reinitialize with difficulty:', error)

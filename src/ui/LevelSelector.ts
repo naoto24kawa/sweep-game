@@ -272,7 +272,7 @@ export class LevelSelector {
   }
 
   private selectLevel(difficulty: Difficulty): void {
-    console.log(`🎯 LevelSelector: Level selected - ${difficulty}`)
+
     
     // レベル変更中フラグを設定
     GameStateFlags.getInstance().setLevelChanging(true)
@@ -282,7 +282,7 @@ export class LevelSelector {
     
     // 短い遅延でコールバックを実行（hide()の完了を待つ）
     setTimeout(() => {
-      console.log(`🎯 LevelSelector: Executing callback for ${difficulty}`)
+
       if (this.options.onLevelSelect) {
         this.options.onLevelSelect(difficulty)
       }

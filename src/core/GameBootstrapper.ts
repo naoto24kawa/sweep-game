@@ -170,7 +170,7 @@ export class GameBootstrapper {
       services.gameLogic,
       services.soundManager,
       services.statsManager,
-      services.renderer,
+      services.renderer.getEffectManager(),
       {
         onGameSuccess: () => {}, // Game クラスで設定される
         onGameFailed: () => {}

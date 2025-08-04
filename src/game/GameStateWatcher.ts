@@ -2,7 +2,8 @@ import { GameState } from '@/types'
 import type { GameLogic } from './GameLogic'
 import type { SoundManager, SoundType } from '@/audio/SoundManager'
 import type { StatsManager } from '@/stats/StatsManager'
-import type { GameRenderer } from '@/renderer/GameRenderer'
+import type { EffectManager } from '@/effects/EffectManager'
+
 
 interface GameStateWatcherCallbacks {
   onGameSuccess?: () => void
@@ -13,7 +14,8 @@ export class GameStateWatcher {
   private gameLogic: GameLogic
   private soundManager: SoundManager
   private statsManager: StatsManager
-  private renderer: GameRenderer | null
+  private effectManager: EffectManager | null
+
   private lastGameState: GameState
   private intervalId: number | null = null
   private callbacks: GameStateWatcherCallbacks
@@ -22,13 +24,14 @@ export class GameStateWatcher {
     gameLogic: GameLogic,
     soundManager: SoundManager,
     statsManager: StatsManager,
-    renderer?: GameRenderer,
+    effectManager?: EffectManager,
     callbacks?: GameStateWatcherCallbacks
   ) {
     this.gameLogic = gameLogic
     this.soundManager = soundManager
     this.statsManager = statsManager
-    this.renderer = renderer || null
+    this.effectManager = effectManager || null
+
     this.callbacks = callbacks || {}
     this.lastGameState = gameLogic.getGameState()
   }
@@ -55,14 +58,7 @@ export class GameStateWatcher {
    * コールバック関数を動的に更新
    */
   updateCallbacks(callbacks: Partial<GameStateWatcherCallbacks>): void {
-    console.log('🔄 GameStateWatcher: Updating callbacks:', {
-      hasOnGameSuccess: !!callbacks.onGameSuccess,
-      hasOnGameFailed: !!callbacks.onGameFailed,
-      previousCallbacks: {
-        hasOnGameSuccess: !!this.callbacks.onGameSuccess,
-        hasOnGameFailed: !!this.callbacks.onGameFailed
-      }
-    })
+
     this.callbacks = { ...this.callbacks, ...callbacks }
   }
 
@@ -75,20 +71,19 @@ export class GameStateWatcher {
         break
 
       case GameState.SUCCESS:
-        console.log('🏆 Game SUCCESS detected! Setting up stats modal display...')
         this.soundManager.playSuccessSequence()
         this.recordGameResult(true)
-        if (this.renderer) {
-          this.renderer.playVictoryEffect()
+        
+        // 勝利エフェクトを表示
+        if (this.effectManager) {
+          this.effectManager.createVictoryEffect()
         }
+
         // エフェクト完了後にStatsModalを表示
         setTimeout(() => {
-          console.log('🏆 Attempting to show stats modal:', {
-            hasCallback: !!this.callbacks.onGameSuccess,
-            callbackType: typeof this.callbacks.onGameSuccess
-          })
+
           if (this.callbacks.onGameSuccess) {
-            console.log('🏆 Calling onGameSuccess callback')
+
             this.callbacks.onGameSuccess()
           } else {
             console.warn('⚠️ onGameSuccess callback is not set!')
@@ -99,9 +94,12 @@ export class GameStateWatcher {
       case GameState.FAILED:
         this.soundManager.play('EXPLOSION' as SoundType)
         this.recordGameResult(false)
-        if (this.renderer) {
-          this.renderer.playGameOverEffect()
+        
+        // 敗北エフェクトを表示
+        if (this.effectManager) {
+          this.effectManager.createGameOverEffect()
         }
+
         // エフェクト完了後にStatsModalを表示
         setTimeout(() => {
           if (this.callbacks.onGameFailed) {

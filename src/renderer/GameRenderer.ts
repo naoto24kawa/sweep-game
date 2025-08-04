@@ -7,6 +7,7 @@ import { GridManager } from './GridManager'
 import { GridEventHandler } from './GridEventHandler'
 import { AnimationManager } from '@/animation/AnimationManager'
 import { GameStateFlags } from '@/core/GameStateFlags'
+import type { EffectManager } from '@/effects/EffectManager'
 
 /**
  * リファクタリングされたGameRenderer
@@ -32,8 +33,6 @@ export class GameRenderer {
     // 専用クラスでキャンバスサイズを計算
     const config = gameLogic.getConfig()
     const sizeInfo = this.sizeCalculator.calculateCanvasSize(config)
-    
-    console.log(`📱 ${sizeInfo.deviceType.toUpperCase()} device detected - using ${sizeInfo.isResponsive ? 'responsive' : 'fixed'} layout`)
 
     this.initializationPromise = this.initialize(
       gameLogic, 
@@ -69,7 +68,6 @@ export class GameRenderer {
 
     // レベル変更中かどうかを確認してGridEventHandlerの初期状態を決定
     const isLevelChanging = GameStateFlags.getInstance().isLevelChangingActive()
-    console.log(`🔧 GameRenderer: Creating GridEventHandler with isLevelChanging=${isLevelChanging}`)
     
     this.eventHandler = new GridEventHandler(
       gameLogic,
@@ -91,7 +89,6 @@ export class GameRenderer {
     setTimeout(() => {
       const gridContainer = this.gridManager.getGridContainer()
       this.notifyGridInfo(gameLogic, gridContainer)
-      console.log('🎯 GameRenderer: Initial grid info notification sent')
     }, 10)
   }
 
@@ -174,6 +171,14 @@ export class GameRenderer {
   }
 
   /**
+   * EffectManagerを取得
+   * @returns EffectManager
+   */
+  public getEffectManager(): EffectManager {
+    return this.pixiAppManager.getEffectManager()
+  }
+
+  /**
    * グリッド情報を通知
    */
   private notifyGridInfo(gameLogic: any, gridContainer: any): void {
@@ -181,38 +186,19 @@ export class GameRenderer {
       const config = gameLogic.getConfig()
       const gridWidth = config.width * (32 + 2) - 2  // RENDER_CONSTANTS.CELL.SIZE + SPACING
       const gridHeight = config.height * (32 + 2) - 2
-      console.log('🎯 GameRenderer: Notifying grid info:', { x: gridContainer.x, y: gridContainer.y, gridWidth, gridHeight })
+      
       this.onGridInfoChanged(gridContainer.x, gridContainer.y, gridWidth, gridHeight)
     }
   }
 
   /**
-   * ビクトリー演出を実行
-   */
-  public playVictoryEffect(): void {
-    this.pixiAppManager.getEffectManager().createVictoryEffect()
-  }
-
-  /**
-   * ゲームオーバー演出を実行
-   */
-  public playGameOverEffect(): void {
-    this.pixiAppManager.getEffectManager().createGameOverEffect()
-  }
-
-  /**
-   * アニメーション付きでレベル変更
-   * 古いグリッドをフェードアウトしてから新しいグリッドをフェードイン
+   * レベル変更アニメーション開始（現在のグリッドをフェードアウト）
    */
   public async animateLevelChange(): Promise<void> {
     const gridContainer = this.gridManager.getGridContainer()
     
-    console.log('🎬 Starting level change animation - fade out current grid')
-    
     // 1. 現在のグリッドをフェードアウト (300ms)
     await this.animationManager.fadeOut(gridContainer, 300)
-    
-    console.log('🎬 Current grid faded out - ready for new grid')
     
     // ここで新しいグリッドが作成される（外部で実行）
     
@@ -225,15 +211,11 @@ export class GameRenderer {
   public async completeAnimateLevelChange(): Promise<void> {
     const gridContainer = this.gridManager.getGridContainer()
     
-    console.log('🎬 Starting new grid fade in animation')
-    
     // 新しいグリッドを透明から開始
     gridContainer.alpha = 0
     
     // 2. 新しいグリッドをフェードイン (200ms)
     await this.animationManager.fadeIn(gridContainer, 200)
-    
-    console.log('🎬 Level change animation completed')
   }
 
   /**

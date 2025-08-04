@@ -157,36 +157,62 @@ export class AnimationManager {
     this.tweens.push(tween)
   }
 
-  public fadeIn(target: PIXI.Container, duration: number = ANIMATION_CONSTANTS.DURATIONS.FADE_IN_DEFAULT, onComplete?: () => void): void {
-    target.alpha = 0
-    this.to(target, { alpha: 1 }, { duration, onComplete })
-  }
-
-  public fadeOut(target: PIXI.Container, duration: number = ANIMATION_CONSTANTS.DURATIONS.FADE_OUT_DEFAULT, onComplete?: () => void): void {
-    this.to(target, { alpha: 0 }, { duration, onComplete })
-  }
-
-  public scaleUp(target: PIXI.Container, duration: number = ANIMATION_CONSTANTS.DURATIONS.SCALE_UP_DEFAULT, onComplete?: () => void): void {
-    target.scale.set(ANIMATION_CONSTANTS.SCALING.SCALE_UP_INITIAL)
-    this.to(target, { 'scale.x': 1, 'scale.y': 1 }, { 
-      duration, 
-      easing: this.easeOutBack,
-      onComplete 
+  public fadeIn(target: PIXI.Container, duration: number = ANIMATION_CONSTANTS.DURATIONS.FADE_IN_DEFAULT, onComplete?: () => void): Promise<void> {
+    return new Promise<void>((resolve) => {
+      target.alpha = 0
+      this.to(target, { alpha: 1 }, { 
+        duration, 
+        onComplete: () => {
+          if (onComplete) onComplete()
+          resolve()
+        }
+      })
     })
   }
 
-  public bounce(target: PIXI.Container, duration: number = ANIMATION_CONSTANTS.DURATIONS.BOUNCE_DEFAULT, onComplete?: () => void): void {
-    const originalScale = target.scale.x
-    this.to(target, { 'scale.x': originalScale * ANIMATION_CONSTANTS.SCALING.BOUNCE_SCALE_MULTIPLIER, 'scale.y': originalScale * ANIMATION_CONSTANTS.SCALING.BOUNCE_SCALE_MULTIPLIER }, {
-      duration: duration / 2,
-      easing: this.easeOutQuad,
-      onComplete: () => {
-        this.to(target, { 'scale.x': originalScale, 'scale.y': originalScale }, {
-          duration: duration / 2,
-          easing: this.easeOutBounce,
-          onComplete
-        })
-      }
+  public fadeOut(target: PIXI.Container, duration: number = ANIMATION_CONSTANTS.DURATIONS.FADE_OUT_DEFAULT, onComplete?: () => void): Promise<void> {
+    return new Promise<void>((resolve) => {
+      this.to(target, { alpha: 0 }, { 
+        duration, 
+        onComplete: () => {
+          if (onComplete) onComplete()
+          resolve()
+        }
+      })
+    })
+  }
+
+  public scaleUp(target: PIXI.Container, duration: number = ANIMATION_CONSTANTS.DURATIONS.SCALE_UP_DEFAULT, onComplete?: () => void): Promise<void> {
+    return new Promise<void>((resolve) => {
+      target.scale.set(ANIMATION_CONSTANTS.SCALING.SCALE_UP_INITIAL)
+      this.to(target, { 'scale.x': 1, 'scale.y': 1 }, { 
+        duration, 
+        easing: this.easeOutBack,
+        onComplete: () => {
+          if (onComplete) onComplete()
+          resolve()
+        }
+      })
+    })
+  }
+
+  public bounce(target: PIXI.Container, duration: number = ANIMATION_CONSTANTS.DURATIONS.BOUNCE_DEFAULT, onComplete?: () => void): Promise<void> {
+    return new Promise<void>((resolve) => {
+      const originalScale = target.scale.x
+      this.to(target, { 'scale.x': originalScale * ANIMATION_CONSTANTS.SCALING.BOUNCE_SCALE_MULTIPLIER, 'scale.y': originalScale * ANIMATION_CONSTANTS.SCALING.BOUNCE_SCALE_MULTIPLIER }, {
+        duration: duration / 2,
+        easing: this.easeOutQuad,
+        onComplete: () => {
+          this.to(target, { 'scale.x': originalScale, 'scale.y': originalScale }, {
+            duration: duration / 2,
+            easing: this.easeOutBounce,
+            onComplete: () => {
+              if (onComplete) onComplete()
+              resolve()
+            }
+          })
+        }
+      })
     })
   }
 
@@ -215,23 +241,26 @@ export class AnimationManager {
     })
   }
 
-  public shake(target: PIXI.Container, intensity: number = 5, duration: number = ANIMATION_CONSTANTS.DURATIONS.SHAKE_DEFAULT): void {
-    const originalX = target.x
-    const originalY = target.y
-    const shakeCount = ANIMATION_CONSTANTS.EFFECTS.SHAKE_COUNT
-    const shakeInterval = duration / shakeCount
+  public shake(target: PIXI.Container, intensity: number = 5, duration: number = ANIMATION_CONSTANTS.DURATIONS.SHAKE_DEFAULT): Promise<void> {
+    return new Promise<void>((resolve) => {
+      const originalX = target.x
+      const originalY = target.y
+      const shakeCount = ANIMATION_CONSTANTS.EFFECTS.SHAKE_COUNT
+      const shakeInterval = duration / shakeCount
 
-    for (let i = 0; i < shakeCount; i++) {
-      setTimeout(() => {
-        if (i === shakeCount - 1) {
-          target.x = originalX
-          target.y = originalY
-        } else {
-          target.x = originalX + (Math.random() - 0.5) * intensity * 2
-          target.y = originalY + (Math.random() - 0.5) * intensity * 2
-        }
-      }, i * shakeInterval)
-    }
+      for (let i = 0; i < shakeCount; i++) {
+        setTimeout(() => {
+          if (i === shakeCount - 1) {
+            target.x = originalX
+            target.y = originalY
+            resolve()
+          } else {
+            target.x = originalX + (Math.random() - 0.5) * intensity * 2
+            target.y = originalY + (Math.random() - 0.5) * intensity * 2
+          }
+        }, i * shakeInterval)
+      }
+    })
   }
 
   public stop(target?: PIXI.Container): void {
