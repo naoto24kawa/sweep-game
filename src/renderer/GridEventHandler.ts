@@ -19,8 +19,12 @@ export class GridEventHandler {
     private gameLogic: GameLogic,
     private effectManager: EffectManager,
     private soundManager: SoundManager | null,
-    private onDisplayUpdate: () => void
-  ) {}
+    private onDisplayUpdate: () => void,
+    initialModalActive: boolean = false
+  ) {
+    this.isModalActive = initialModalActive
+    console.log(`🔧 GridEventHandler: Initialized with modalActive=${initialModalActive}`)
+  }
 
   private gridOffset = { x: 0, y: 0 }  // グリッドコンテナのオフセット
 
@@ -436,6 +440,14 @@ export class GridEventHandler {
   public setModalActive(isActive: boolean): void {
     console.log(`🔄 Modal state changed: ${this.isModalActive} → ${isActive}`)
     this.isModalActive = isActive
+  }
+
+  /**
+   * 現在のモーダル状態を取得
+   * @returns モーダルがアクティブかどうか
+   */
+  public getModalActive(): boolean {
+    return this.isModalActive
   }
 
   /**

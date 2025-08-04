@@ -86,6 +86,23 @@ export class ModalEventController {
       this.pendingHideTimeout = null
     }
     
+    // レベル変更時はグリッドを無効化したまま
+    // 後でenableGridAfterLevelChange()で明示的に有効化される
+    if (this.gridEventHandler) {
+      this.gridEventHandler.setModalActive(true)
+    }
+  }
+  
+  /**
+   * ゲームリスタート時にモーダル状態をリセット（遅延付き）
+   */
+  public restartModalState(): void {
+    // 保留中の非表示処理をキャンセル
+    if (this.pendingHideTimeout) {
+      clearTimeout(this.pendingHideTimeout)
+      this.pendingHideTimeout = null
+    }
+    
     // 一時的にモーダルをアクティブのままにしてクリック貫通を防ぐ
     if (this.gridEventHandler) {
       this.gridEventHandler.setModalActive(true)
@@ -96,6 +113,39 @@ export class ModalEventController {
           this.gridEventHandler.setModalActive(false)
         }
       }, 200)
+    }
+  }
+  
+  /**
+   * レベル変更後にグリッドイベントを有効化
+   */
+  /**
+   * レベル変更後にグリッドイベントを有効化
+   */
+  public enableGridAfterLevelChange(): void {
+    console.log('🎯 ModalEventController: Enabling grid after level change')
+    
+    // 保留中の非表示処理をキャンセル
+    if (this.pendingHideTimeout) {
+      clearTimeout(this.pendingHideTimeout)
+      this.pendingHideTimeout = null
+      console.log('🎯 ModalEventController: Cancelled pending hide timeout')
+    }
+    
+    // グリッドイベントを有効化
+    if (this.gridEventHandler) {
+      console.log('🎯 ModalEventController: Setting grid modal active to false')
+      this.gridEventHandler.setModalActive(false)
+      
+      // レベル変更直後の状態を確認
+      setTimeout(() => {
+        if (this.gridEventHandler) {
+          const modalState = this.gridEventHandler.getModalActive()
+          console.log(`🎯 ModalEventController: Final grid modal state: ${modalState}`)
+        }
+      }, 50)
+    } else {
+      console.warn('⚠️ ModalEventController: No grid event handler available for enabling')
     }
   }
 }

@@ -7,6 +7,7 @@ import { DOMHandler } from '@/ui/DOMHandler'
 import { GameUICoordinator } from '@/ui/GameUICoordinator'
 import { GameBootstrapper } from '@/core/GameBootstrapper'
 import { Difficulty } from '@/types'
+import { GameStateFlags } from '@/core/GameStateFlags'
 
 /**
  * ゲームのライフサイクル管理を行う専用クラス
@@ -66,9 +67,16 @@ export class GameLifecycleManager {
       return
     }
     
-    console.log(`GameLifecycleManager: Changing difficulty from ${this.currentDifficulty} to ${difficulty}`)
+    console.log(`🔄 GameLifecycleManager: Changing difficulty from ${this.currentDifficulty} to ${difficulty}`)
     
     try {
+      // レベル変更状態を設定（新しいGridEventHandlerが無効状態で作成されるように）
+      GameStateFlags.getInstance().setLevelChanging(true)
+      
+      // レベル変更中はグリッドイベントを完全に無効化
+      console.log('🔄 GameLifecycleManager: Disabling grid events for level change')
+      this.uiCoordinator.resetModalStateForLevelChange()
+      
       // 1. 現在のグリッドをフェードアウト
       if (this.renderer) {
         await this.renderer.animateLevelChange()
@@ -86,10 +94,26 @@ export class GameLifecycleManager {
         await this.renderer.completeAnimateLevelChange()
       }
       
-      console.log('GameLifecycleManager: Difficulty change completed with animation')
+      // 5. レベル変更完了処理（単一のタイムアウトで確実に実行）
+      setTimeout(() => {
+        console.log('🔄 GameLifecycleManager: Finalizing level change')
+        
+        if (this.uiCoordinator) {
+          // 新しいGridEventHandlerを確実に接続
+          this.uiCoordinator.setGridEventHandler(this.renderer.getEventHandler())
+          
+          // レベル変更状態をリセットしてからグリッドを有効化
+          GameStateFlags.getInstance().setLevelChanging(false)
+          this.uiCoordinator.enableGridAfterLevelChange()
+          
+          console.log('🔄 GameLifecycleManager: Level change completed successfully')
+        }
+      }, 300) // アニメーション完了を確実に待つ
       
     } catch (error) {
-      console.error('GameLifecycleManager: Failed to change difficulty:', error)
+      // エラー時もレベル変更状態をリセット
+      GameStateFlags.getInstance().setLevelChanging(false)
+      console.error('❌ GameLifecycleManager: Failed to change difficulty:', error)
       throw new Error(`難易度変更に失敗しました: ${error}`)
     }
   }
@@ -165,7 +189,18 @@ export class GameLifecycleManager {
       this.uiCoordinator = new GameUICoordinator(components.levelSelector, components.statsModal)
       this.uiCoordinator.setAchievementButton(components.achievementButton)
       this.uiCoordinator.setAchievementModal(components.achievementModal)
+      
+      // レベル変更中なので、GridEventHandlerとの接続前に状態を確保
+      const newGridEventHandler = components.renderer.getEventHandler()
+      console.log('🔧 GameLifecycleManager: Connecting new GridEventHandler, current modalActive:', newGridEventHandler.getModalActive())
+      
+      this.uiCoordinator.setGridEventHandler(newGridEventHandler)
+      // レベル変更中は明示的に無効状態を維持
+      this.uiCoordinator.resetModalStateForLevelChange()
       this.uiCoordinator.markAsInitialized()
+      
+      // 新しいUICoordinatorをcomponentsに追加
+      ;(components as any).uiCoordinator = this.uiCoordinator
       
       // コールバック関数が設定されていれば、新しいコンポーネントで再設定
       if (this.onReinitializeCallback) {

@@ -6,6 +6,7 @@ import { PixiAppManager } from './PixiAppManager'
 import { GridManager } from './GridManager'
 import { GridEventHandler } from './GridEventHandler'
 import { AnimationManager } from '@/animation/AnimationManager'
+import { GameStateFlags } from '@/core/GameStateFlags'
 
 /**
  * リファクタリングされたGameRenderer
@@ -66,12 +67,16 @@ export class GameRenderer {
     
     this.gridManager.setupGrid()
 
+    // レベル変更中かどうかを確認してGridEventHandlerの初期状態を決定
+    const isLevelChanging = GameStateFlags.getInstance().isLevelChangingActive()
+    console.log(`🔧 GameRenderer: Creating GridEventHandler with isLevelChanging=${isLevelChanging}`)
+    
     this.eventHandler = new GridEventHandler(
       gameLogic,
-      // this.pixiAppManager.getAnimationManager(),  // 削除
       this.pixiAppManager.getEffectManager(),
       soundManager || null,
-      () => this.updateDisplay()
+      () => this.updateDisplay(),
+      isLevelChanging // レベル変更中は無効状態で開始
     )
 
     // グリッド位置変更時にイベントハンドラーのオフセットを更新

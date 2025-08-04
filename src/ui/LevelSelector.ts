@@ -1,5 +1,6 @@
 import * as PIXI from 'pixi.js'
 import { Difficulty } from '@/types'
+import { GameStateFlags } from '@/core/GameStateFlags'
 
 interface LevelSelectorOptions {
   onLevelSelect: (difficulty: Difficulty) => void
@@ -271,13 +272,21 @@ export class LevelSelector {
   }
 
   private selectLevel(difficulty: Difficulty): void {
+    console.log(`🎯 LevelSelector: Level selected - ${difficulty}`)
+    
+    // レベル変更中フラグを設定
+    GameStateFlags.getInstance().setLevelChanging(true)
+    
     // まずモーダルを非表示にしてクリックスルーを防ぐ
     this.hide()
     
-    // その後でレベル変更のコールバックを実行
-    if (this.options.onLevelSelect) {
-      this.options.onLevelSelect(difficulty)
-    }
+    // 短い遅延でコールバックを実行（hide()の完了を待つ）
+    setTimeout(() => {
+      console.log(`🎯 LevelSelector: Executing callback for ${difficulty}`)
+      if (this.options.onLevelSelect) {
+        this.options.onLevelSelect(difficulty)
+      }
+    }, 100)
   }
 
   /**

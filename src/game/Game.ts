@@ -86,6 +86,12 @@ export class Game {
       hasGameStateWatcher: !!components.gameStateWatcher
     })
     
+    // UIコーディネーターが新しく作成された場合は更新
+    if (components.uiCoordinator && components.uiCoordinator !== this.uiCoordinator) {
+      console.log('🔄 Game: Updating UICoordinator reference')
+      this.uiCoordinator = components.uiCoordinator
+    }
+    
     // LevelSelectorのコールバックを更新
     components.levelSelector.setOnLevelSelect((difficulty: Difficulty) => this.handleLevelSelection(difficulty))
     components.levelSelector.setOnClose(() => this.handleLevelSelectorClose())

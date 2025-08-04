@@ -120,7 +120,21 @@ export class GameUICoordinator {
    * モーダル状態をリセット（リスタート時に使用）
    */
   public resetModalState(): void {
+    this.modalEventController.restartModalState()
+  }
+
+  /**
+   * レベル変更開始時にモーダル状態をリセット（遅延なし）
+   */
+  public resetModalStateForLevelChange(): void {
     this.modalEventController.resetModalState()
+  }
+  
+  /**
+   * レベル変更後にグリッドイベントを有効化
+   */
+  public enableGridAfterLevelChange(): void {
+    this.modalEventController.enableGridAfterLevelChange()
   }
   
   /**
