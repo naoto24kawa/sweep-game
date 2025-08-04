@@ -76,6 +76,8 @@ export class AchievementButton {
 
     // トロフィーアイコンを作成
     const trophy = TrophyIconRenderer.create()
+    // アイコンがクリックをブロックしないように設定
+    trophy.eventMode = 'none'
     this.button.addChild(trophy)
 
     // Achievement数のバッジ（実績がある場合のみ）

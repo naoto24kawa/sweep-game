@@ -238,6 +238,8 @@ export class AchievementModal {
     const fontSize = Math.min(12, height / 2.5)
     const buttonText = this.createText(text, fontSize, color)
     buttonText.anchor.set(0.5)
+    // テキストがクリックをブロックしないように設定
+    buttonText.eventMode = 'none'
     buttonContainer.addChild(buttonText)
 
     return buttonContainer
