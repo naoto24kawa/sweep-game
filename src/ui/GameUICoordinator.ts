@@ -4,6 +4,8 @@ import { AchievementButton } from '@/ui/AchievementButton'
 import { AchievementModal } from '@/ui/AchievementModal'
 import { ModalEventController } from '@/ui/ModalEventController'
 import { Logger } from '@/core/Logger'
+import { GridEventHandler } from '@/renderer/GridEventHandler'
+import { GameLogic } from '@/game/GameLogic'
 
 /**
  * UIモーダル表示の統合管理を行う専用クラス
@@ -32,14 +34,14 @@ export class GameUICoordinator {
   /**
    * GridEventHandlerを設定
    */
-  public setGridEventHandler(gridEventHandler: any): void {
+  public setGridEventHandler(gridEventHandler: GridEventHandler): void {
     this.modalEventController.setGridEventHandler(gridEventHandler)
   }
   
   /**
    * StatsModalのGameLogicインスタンスを更新
    */
-  public updateStatsModalGameLogic(newGameLogic: any): void {
+  public updateStatsModalGameLogic(newGameLogic: GameLogic): void {
     this.statsModal.updateGameLogic(newGameLogic)
     Logger.debug('GameUICoordinator: StatsModal GameLogic updated')
   }

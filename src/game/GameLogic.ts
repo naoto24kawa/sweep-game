@@ -308,10 +308,20 @@ export class GameLogic {
     this.cells = this.initializeCells()
   }
 
+  /**
+   * セル開放時のスコアを計算する
+   * 基本スコア + コンボボーナス（空セルかつコンボ継続時のみ）
+   * 
+   * @param adjacentMines セルの隣接地雷数
+   * @param isCombo コンボが継続中かどうか
+   * @returns 計算されたスコア
+   */
   private calculateCellScore(adjacentMines: number, isCombo: boolean): number {
     const baseScore = this.scoreConfig.baseRevealScore
     
+    // 空セル（隣接地雷数0）かつコンボ継続中の場合のみボーナス適用
     if (adjacentMines === 0 && isCombo) {
+      // コンボボーナス = 基本スコア × コンボ倍率 × 現在のコンボ数
       const comboBonus = Math.floor(baseScore * this.scoreConfig.comboMultiplier * this.stats.comboCount)
       return baseScore + comboBonus
     }
@@ -337,19 +347,34 @@ export class GameLogic {
     this.stats.lastCellRevealTime = currentTime
   }
 
+  /**
+   * 最終スコアを計算する（ゲーム完了時のボーナス含む）
+   * 
+   * スコア構成：
+   * - 基本スコア（セル開放時に蓄積）
+   * - 完了ボーナス（ゲーム成功時）
+   * - 完璧フラグボーナス（地雷数と同じ数のフラグを使用）
+   * - タイムボーナス（60秒基準での短縮時間ボーナス）
+   * 
+   * @returns 計算された最終スコア
+   */
   private calculateFinalScore(): number {
     let finalScore = this.stats.score
 
     if (this.gameState === GameState.SUCCESS) {
+      // ゲーム完了ボーナス
       finalScore += this.scoreConfig.completionBonus
 
+      // 完璧フラグボーナス（地雷数と使用フラグ数が一致）
       if (this.stats.flagsUsed === this.config.mines) {
         finalScore += this.scoreConfig.perfectFlagBonus
       }
 
+      // タイムボーナス（60秒基準、短縮時間に応じてボーナス）
       if (this.stats.elapsedTime > 0) {
-        const timeBonusBase = 60000
-        const timeBonus = Math.max(0, timeBonusBase - this.stats.elapsedTime) * this.scoreConfig.timeBonusMultiplier
+        const TIME_BONUS_BASE_MS = 60000 // 60秒基準
+        const timeSaved = Math.max(0, TIME_BONUS_BASE_MS - this.stats.elapsedTime)
+        const timeBonus = timeSaved * this.scoreConfig.timeBonusMultiplier
         finalScore += Math.floor(timeBonus)
       }
     }

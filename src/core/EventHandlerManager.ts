@@ -5,12 +5,16 @@
 
 import { Difficulty } from '@/types'
 import { Logger } from './Logger'
+import { LevelSelector } from '@/ui/LevelSelector'
+import { StatsModal } from '@/ui/StatsModal'
+import { EventManager } from '@/ui/EventManager'
+import { GameStateWatcher } from '@/game/GameStateWatcher'
 
 export interface GameComponents {
-  levelSelector: any
-  statsModal: any
-  eventManager: any
-  gameStateWatcher: any
+  levelSelector: LevelSelector
+  statsModal: StatsModal
+  eventManager: EventManager
+  gameStateWatcher: GameStateWatcher
   uiCoordinator?: any
 }
 
@@ -58,7 +62,7 @@ export class EventHandlerManager {
   /**
    * レベル選択関連のコールバックを設定
    */
-  private setupLevelSelectorCallbacks(levelSelector: any): void {
+  private setupLevelSelectorCallbacks(levelSelector: LevelSelector): void {
     levelSelector.setOnLevelSelect((difficulty: Difficulty) => {
       Logger.debug(`EventHandlerManager: Level selected: ${difficulty}`)
       this.callbacks.onLevelSelect(difficulty)
@@ -73,7 +77,7 @@ export class EventHandlerManager {
   /**
    * 統計モーダル関連のコールバックを設定
    */
-  private setupStatsModalCallbacks(statsModal: any): void {
+  private setupStatsModalCallbacks(statsModal: StatsModal): void {
     statsModal.updateCallbacks({
       onClose: () => {
         Logger.debug('EventHandlerManager: Stats modal close requested')
@@ -93,7 +97,7 @@ export class EventHandlerManager {
   /**
    * イベントマネージャー関連のコールバックを設定
    */
-  private setupEventManagerCallbacks(eventManager: any): void {
+  private setupEventManagerCallbacks(eventManager: EventManager): void {
     eventManager.restartCallback = () => {
       Logger.debug('EventHandlerManager: Event manager restart requested')
       this.callbacks.onRestart()
@@ -108,7 +112,7 @@ export class EventHandlerManager {
   /**
    * ゲーム状態監視関連のコールバックを設定
    */
-  private setupGameStateWatcherCallbacks(gameStateWatcher: any): void {
+  private setupGameStateWatcherCallbacks(gameStateWatcher: GameStateWatcher): void {
     gameStateWatcher.updateCallbacks({
       onGameSuccess: () => {
         Logger.debug('EventHandlerManager: Game success detected, calling showStatsModal')
